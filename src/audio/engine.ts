@@ -104,6 +104,7 @@ class AudioEngine {
   private oudBuffers = new Map<number, AudioBuffer>()
   private seqTimers: number[] = []
   private seqVoices: Voice[] = []
+  private seqDone: (() => void) | null = null
   private droneVoice: Voice | null = null
   timbre: Timbre = 'oriental'
   volume = 0.8
@@ -218,18 +219,28 @@ class AudioEngine {
     env.connect(opts.dest ?? this.out)
     for (const o of oscs) o.start(now)
 
-    let stopped = false
+    // قد يُطلب الإيقاف مرتين: موعد مجدول مسبقاً (نهاية النغمة)، ثم إيقاف فوري من المستخدم.
+    // الطلب الأبكر هو الذي يُطبَّق دائماً.
+    let stopAt = Infinity
     return {
       stop: (when?: number) => {
-        if (stopped) return
-        stopped = true
-        const t = Math.max(when ?? ctx.currentTime, now + spec.attack)
-        env.gain.cancelScheduledValues(t)
-        env.gain.setValueAtTime(env.gain.value, t)
+        const cur = ctx.currentTime
+        const req = Math.max(when ?? cur, cur)
+        if (req >= stopAt) return
+        stopAt = req
+        // نغمة لم تبدأ بعد: تُلغى كلياً بدل أن تُسمع لحظةً عند موعدها
+        if (req <= now && cur < now) {
+          env.disconnect()
+          for (const o of oscs) safeStop(o)
+          if (lfo) safeStop(lfo)
+          return
+        }
+        const t = Math.max(req, now + spec.attack)
+        holdAt(env.gain, t)
         env.gain.setTargetAtTime(0, t, spec.release / 3)
         const end = t + spec.release * 2.5
-        for (const o of oscs) o.stop(end)
-        lfo?.stop(end)
+        for (const o of oscs) safeStop(o, end)
+        if (lfo) safeStop(lfo, end)
       },
     }
   }
@@ -275,17 +286,25 @@ class AudioEngine {
     env.connect(opts.dest ?? this.out)
     src.start(now)
 
-    let stopped = false
+    let stopAt = Infinity
     return {
       stop: (when?: number) => {
-        if (stopped) return
-        stopped = true
+        const cur = ctx.currentTime
+        const req = Math.max(when ?? cur, cur)
+        if (req >= stopAt) return
+        stopAt = req
+        // نقرة لم تحن بعد: تُلغى كلياً (وإلا سُمعت نقرة مكتومة عند موعدها)
+        if (req <= now && cur < now) {
+          env.disconnect()
+          safeStop(src)
+          return
+        }
         // رفع الإصبع/كتم الوتر: تلاشٍ سريع لكن غير مقطوع
-        const t = Math.max(when ?? ctx.currentTime, now + 0.02)
+        const t = Math.max(req, now + 0.02)
         env.gain.cancelScheduledValues(t)
         env.gain.setValueAtTime(level, t)
         env.gain.setTargetAtTime(0, t, 0.07)
-        src.stop(t + 0.5)
+        safeStop(src, t + 0.5)
       },
     }
   }
@@ -343,9 +362,12 @@ class AudioEngine {
       }
     })
     const total = events.length ? Math.max(...events.map((e) => e.t + e.dur)) : 0
+    this.seqDone = onDone ?? null
     this.seqTimers.push(
       window.setTimeout(() => {
         this.seqVoices = []
+        this.seqTimers = []
+        this.seqDone = null
         onDone?.()
       }, (total + 0.1) * 1000),
     )
@@ -356,6 +378,10 @@ class AudioEngine {
     this.seqTimers = []
     for (const v of this.seqVoices) v.stop()
     this.seqVoices = []
+    // أخبر الصفحة أن التشغيل توقف (مثلاً عند بدء مقطع يوتيوب) حتى لا يبقى الزر على "إيقاف"
+    const done = this.seqDone
+    this.seqDone = null
+    done?.()
   }
 
   /** نغمة القرار الممتدة (الدرون) تساعد الأذن على الإحساس بالمقام */
@@ -388,6 +414,22 @@ class AudioEngine {
     this.stopSequence()
     this.stopDrone()
   }
+}
+
+/** يوقف مصدر صوت دون أن يرمي خطأ إن كان قد توقف مسبقاً */
+function safeStop(node: AudioScheduledSourceNode, when?: number) {
+  try {
+    node.stop(when)
+  } catch {
+    /* توقف مسبقاً */
+  }
+}
+
+/** يثبّت قيمة الغلاف عند اللحظة t ويلغي ما بعدها، تمهيداً للتلاشي */
+function holdAt(param: AudioParam, t: number) {
+  if (typeof param.cancelAndHoldAtTime === 'function') param.cancelAndHoldAtTime(t)
+  // بدونها (فايرفوكس) يكفي الإلغاء: setTargetAtTime التالية تبدأ من قيمة المنحنى عند t
+  else param.cancelScheduledValues(t)
 }
 
 /** وتر مقروص: خط تأخير بطول الدورة مع فلتر متوسط ينعّم الصوت تدريجياً */
