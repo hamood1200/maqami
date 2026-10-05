@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FAMILIES, MAQAMAT, MAQAM_BY_ID, familyName, type JinsPlacement } from '../data/maqamat'
 import { AJNAS_BY_ID } from '../data/ajnas'
 import { noteCents } from '../data/notes'
+import { tonicOptions, transposeMaqam } from '../data/transpose'
 import { engine } from '../audio/engine'
 import { maqamEvents, notesEvents, phraseCount, type PlayMode } from '../audio/phrases'
 import { Keyboard } from '../components/Keyboard'
@@ -24,12 +25,16 @@ export function MaqamPage({ id }: { id: string }) {
   const [phrase, setPhrase] = useState(0)
   const [drone, setDrone] = useState(false)
   const [showAll, setShowAll] = useState(false)
+  const [shift, setShift] = useState(0)
+  const t = useMemo(() => transposeMaqam(m, shift), [m, shift])
+  const tonics = useMemo(() => tonicOptions(m), [m])
 
   useEffect(() => {
     stop()
     engine.stopDrone()
     setDrone(false)
     setShowAll(false)
+    setShift(0)
   }, [m.id, stop])
 
   useEffect(() => () => engine.stopDrone(), [])
@@ -49,22 +54,29 @@ export function MaqamPage({ id }: { id: string }) {
   const run = (mode: PlayMode) => {
     if (playing === mode) return stop()
     if (mode === 'phrase') setPhrase((p) => (p + 1) % phraseCount())
-    play(mode, maqamEvents(m, mode, settings.bpm, { phrase }))
+    play(mode, maqamEvents(t, mode, settings.bpm, { phrase }))
   }
 
   const playJins = (j: JinsPlacement, k: number) => {
-    const notes = m.notes.slice(j.at, j.at + j.length)
+    const notes = t.notes.slice(j.at, j.at + j.length)
     const events = notesEvents(notes, settings.bpm, { updown: true }).map((e) => ({ ...e, tag: (e.tag ?? 0) + j.at }))
     play(`jins-${k}`, events)
   }
 
   const toggleDrone = () => {
     if (drone) engine.stopDrone()
-    else engine.startDrone(noteCents(m.notes[0]))
+    else engine.startDrone(noteCents(t.notes[0]))
     setDrone(!drone)
   }
 
-  const extra = m.descending?.filter((n) => !m.notes.includes(n)) ?? []
+  const changeTonic = (s: number) => {
+    if (s === shift) return
+    stop()
+    setShift(s)
+    if (drone) engine.startDrone(noteCents(transposeMaqam(m, s).notes[0]))
+  }
+
+  const extra = t.descending?.filter((n) => !t.notes.includes(n)) ?? []
   const related = MAQAMAT.filter((x) => x.family === m.family && x.id !== m.id)
 
   return (
@@ -110,13 +122,13 @@ export function MaqamPage({ id }: { id: string }) {
             <div>
               <dt>القرار</dt>
               <dd>
-                <NoteName note={m.notes[0]} />
+                <NoteName note={t.notes[0]} />
               </dd>
             </div>
             <div>
               <dt>الغمّاز</dt>
               <dd>
-                <NoteName note={m.notes[m.ghammaz]} />
+                <NoteName note={t.notes[m.ghammaz]} />
               </dd>
             </div>
             <div>
@@ -132,6 +144,42 @@ export function MaqamPage({ id }: { id: string }) {
 
         <section className="panel organ-panel">
           <div className="panel-label">الآلة</div>
+          <div className="tonic-picker">
+            <div className="tonic-head">
+              <span className="small-title">القرار على</span>
+              {shift !== 0 && (
+                <button type="button" className="tonic-reset" onClick={() => changeTonic(0)}>
+                  رجوع إلى الأصل (<NoteName note={m.notes[0]} />)
+                </button>
+              )}
+            </div>
+            <div className="tonic-row" role="radiogroup" aria-label="اختر القرار">
+              {tonics.map((o) => (
+                <button
+                  key={o.shift}
+                  type="button"
+                  role="radio"
+                  aria-checked={o.shift === shift}
+                  className={`tonic-chip ${o.shift === shift ? 'on' : ''} ${o.shift === 0 ? 'is-home' : ''}`}
+                  onClick={() => changeTonic(o.shift)}
+                  title={o.shift === 0 ? 'القرار الأصلي' : undefined}
+                >
+                  <NoteName note={o.tonic} />
+                </button>
+              ))}
+            </div>
+            <p className="tonic-note muted">
+              {shift === 0 ? (
+                <>
+                  هذا هو القرار المعتاد. اختر نغمة أخرى لتعزف {m.name} منها: المسافات نفسها، والمفاتيح تتغيّر.
+                </>
+              ) : (
+                <>
+                  {m.name} على <NoteName note={t.notes[0]} />: نفس المسافات، لكن انتبه للمفاتيح الملوّنة ومفاتيح الربع الجديدة.
+                </>
+              )}
+            </p>
+          </div>
           <div className="controls">
             <div className="btn-group">
               <PlayBtn active={playing === 'up'} onClick={() => run('up')}>
@@ -152,7 +200,7 @@ export function MaqamPage({ id }: { id: string }) {
             </button>
           </div>
 
-          <Keyboard notes={m.notes} extraNotes={extra} ghammaz={m.ghammaz} jinsOf={jinsOf} lit={lit} />
+          <Keyboard notes={t.notes} extraNotes={extra} ghammaz={m.ghammaz} jinsOf={jinsOf} lit={lit} />
 
           <div className="legend">
             <span>
@@ -173,19 +221,19 @@ export function MaqamPage({ id }: { id: string }) {
           </div>
 
           <ScaleStrip
-            notes={m.notes}
+            notes={t.notes}
             ajnas={m.ajnas}
             ghammaz={m.ghammaz}
             litDegree={litDegree}
             showTraditional={settings.showTraditional}
-            onNote={(i) => engine.playNote(noteCents(m.notes[i]), 0.7)}
+            onNote={(i) => engine.playNote(noteCents(t.notes[i]), 0.7)}
             onJins={playJins}
           />
 
-          {m.descending && (
+          {t.descending && (
             <div className="descending">
               <div className="small-title">في الهبوط</div>
-              <ScaleStrip notes={[...m.descending].reverse()} ghammaz={m.ghammaz} showTraditional={settings.showTraditional} onNote={(i) => engine.playNote(noteCents([...m.descending!].reverse()[i]), 0.7)} />
+              <ScaleStrip notes={[...t.descending].reverse()} ghammaz={m.ghammaz} showTraditional={settings.showTraditional} onNote={(i) => engine.playNote(noteCents([...t.descending!].reverse()[i]), 0.7)} />
             </div>
           )}
 

@@ -1080,6 +1080,85 @@ input[type='range'] {
   font-size: 1.12rem;
 }
 
+/* اختيار القرار: شريط متصل من ١٢ نغمة مرتبة من الأخفض إلى الأعلى */
+.tonic-picker {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--hair);
+}
+.tonic-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.tonic-reset {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--red);
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tonic-row {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  direction: ltr;
+  border: 2px solid var(--ink);
+  background: var(--sheet);
+  box-shadow: var(--shade-sm);
+}
+.tonic-chip {
+  position: relative;
+  direction: rtl;
+  border: 0;
+  border-inline-start: 1px solid var(--hair);
+  background: none;
+  color: inherit;
+  padding: 8px 0 10px;
+  font-family: var(--ui);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.tonic-chip:first-child {
+  border-inline-start: 0;
+}
+.tonic-chip:hover {
+  background: var(--ochre-soft);
+}
+.tonic-chip.is-home::after {
+  /* نقطة حمراء تحت القرار الأصلي */
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.tonic-chip.on {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.tonic-chip.on.is-home::after {
+  background: var(--ochre);
+}
+.tonic-note {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -2141,6 +2220,15 @@ input[type='range'] {
     padding-inline-start: 0;
   }
   .facts div:nth-child(n + 3) {
+    border-top: 1px solid var(--hair);
+  }
+  .tonic-row {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .tonic-chip:nth-child(6n + 1) {
+    border-inline-start: 0;
+  }
+  .tonic-chip:nth-child(n + 7) {
     border-top: 1px solid var(--hair);
   }
   /* أزرار التشغيل شبكة متساوية بعرض اللوحة */
