@@ -43,7 +43,7 @@ export function AjnasPage() {
             <b>جنس {jins.name}</b>
           </div>
           <button type="button" className={`btn btn-play ${playing === jins.id ? 'playing' : ''}`} onClick={() => playJins(jins.id)}>
-            <span className="ico">{playing === jins.id ? '■' : '▶'}</span> استمع
+            <span className="ico">{playing === jins.id ? '■' : '▶︎'}</span> استمع
           </button>
         </div>
         <Keyboard notes={jins.notes} lit={lit} />
@@ -64,7 +64,7 @@ export function AjnasPage() {
               <span className="jins-num">{arNum(ji + 1, 2)}</span>
               <div className="jins-card-head">
                 <button type="button" className={`mini-play ${playing === j.id ? 'playing' : ''}`} onClick={() => playJins(j.id)} aria-label={`استمع إلى جنس ${j.name}`}>
-                  {playing === j.id ? '■' : '▶'}
+                  {playing === j.id ? '■' : '▶︎'}
                 </button>
                 <h3>
                   <button type="button" className="link-btn" onClick={() => setSel(j.id)}>

@@ -259,7 +259,7 @@ function PlayBtn({ active, onClick, children }: { active: boolean; onClick: () =
   return (
     <button type="button" className={`btn btn-play ${active ? 'playing' : ''}`} onClick={onClick}>
       <span className="ico" aria-hidden="true">
-        {active ? '■' : '▶'}
+        {active ? '■' : '▶︎'}
       </span>
       {children}
     </button>

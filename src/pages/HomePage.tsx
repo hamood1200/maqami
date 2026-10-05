@@ -52,7 +52,7 @@ export function HomePage() {
             aria-label={heroPlaying ? 'إيقاف' : 'استمع إلى جملة من مقام الراست'}
           >
             <Disc label="راست" sub="على دو" spinning={heroPlaying} />
-            <span className="disc-cue">{heroPlaying ? '■ إيقاف' : '▶ ضع الإبرة'}</span>
+            <span className="disc-cue">{heroPlaying ? '■ إيقاف' : '▶︎ ضع الإبرة'}</span>
           </button>
         </div>
       </section>
@@ -115,7 +115,7 @@ export function HomePage() {
                       aria-label={`استمع إلى ${m.name}`}
                       onClick={() => toggle(m.id)}
                     >
-                      {playing === m.id ? '■' : '▶'}
+                      {playing === m.id ? '■' : '▶︎'}
                     </button>
                     <a href={href.maqam(m.id)}>
                       {m.name}

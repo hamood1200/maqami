@@ -2130,8 +2130,31 @@ input[type='range'] {
     border: 0;
     text-align: start;
   }
+  .facts {
+    grid-template-columns: 1fr 1fr;
+  }
   .facts div {
     padding-inline: 10px;
+  }
+  .facts div:nth-child(odd) {
+    border-inline-start: 0;
+    padding-inline-start: 0;
+  }
+  .facts div:nth-child(n + 3) {
+    border-top: 1px solid var(--hair);
+  }
+  /* أزرار التشغيل شبكة متساوية بعرض اللوحة */
+  .controls > .btn-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .btn-group .btn {
+    margin-bottom: -2px;
+    padding-inline: 8px;
+  }
+  .controls > .btn-toggle {
+    width: 100%;
   }
   .quiz-card {
     padding: 22px 14px;
@@ -2162,12 +2185,36 @@ input[type='range'] {
   .legend-hint {
     display: none;
   }
+  /* اللوحة كاملة بعرض الشاشة بدون تمرير جانبي */
   .keyboard {
-    height: 175px;
-    min-width: calc(var(--w) * 34px);
+    height: 170px;
+    min-width: calc(var(--w) * 25px + 12px);
+    padding: 10px 6px 6px;
+  }
+  .keyboard::before {
+    inset-inline: 6px;
+  }
+  .key.black {
+    width: calc((100% - 12px) / var(--w) * 0.7);
+    left: calc(6px + (100% - 12px) / var(--w) * (var(--b) - 0.35));
+  }
+  .key.white {
+    margin: 0 0.5px;
+    padding-bottom: 13px;
   }
   .key-label {
-    font-size: 0.68rem;
+    font-size: 0.62rem;
+  }
+  /* على المفتاح الأسود الضيّق: العلامة تحت الحرف */
+  .key.black .key-label {
+    flex-direction: column;
+    gap: 0;
+    font-size: 0.54rem;
+  }
+  .key.white .quarter-badge {
+    bottom: 32px;
+    padding: 0 2px;
+    font-size: 0.56rem;
   }
   .clip-grid {
     grid-template-columns: 1fr;

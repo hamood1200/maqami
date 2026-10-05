@@ -268,7 +268,7 @@ export function QuizPage({ focus }: { focus?: string }) {
             ) : (
               <div className="quiz-listen">
                 <button type="button" className={`listen-btn ${playing === 'q' ? 'playing' : ''}`} onClick={replay} aria-label="إعادة الاستماع">
-                  <Disc label={playing === 'q' ? '■' : '▶'} spinning={playing === 'q'} />
+                  <Disc label={playing === 'q' ? '■' : '▶︎'} spinning={playing === 'q'} />
                   <span>{playing === 'q' ? 'إيقاف' : 'استمع مرة أخرى'}</span>
                 </button>
                 <button type="button" className="btn btn-ghost btn-small" onClick={playRef}>
@@ -299,10 +299,10 @@ export function QuizPage({ focus }: { focus?: string }) {
                   {!isCorrect && mode !== 'clip' && (
                     <>
                       <button type="button" className={`btn btn-small btn-play ${playing === `cmp-${q.answer.id}` ? 'playing' : ''}`} onClick={() => compare(q.answer.id)}>
-                        ▶ {q.answer.name}
+                        ▶︎ {q.answer.name}
                       </button>
                       <button type="button" className={`btn btn-small btn-play ${playing === `cmp-${chosen}` ? 'playing' : ''}`} onClick={() => compare(chosen)}>
-                        ▶ {q.options.find((o) => o.id === chosen)?.name}
+                        ▶︎ {q.options.find((o) => o.id === chosen)?.name}
                       </button>
                     </>
                   )}

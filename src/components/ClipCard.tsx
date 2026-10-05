@@ -107,7 +107,7 @@ export function ClipCard({ maqamId, clip: raw, hideMeta, autoPlay, index }: Prop
         <p className="clip-hint">{hideMeta ? 'استمع جيداً للحن… ما المقام برأيك؟' : clip.hint}</p>
         <div className="clip-actions">
           <button type="button" className="btn btn-small" onClick={() => replay()}>
-            {active ? '↺ أعد المقطع' : '▶ شغّل المقطع'}
+            {active ? '↺ أعد المقطع' : '▶︎ شغّل المقطع'}
           </button>
           {!hideMeta && (
             <a className="btn btn-small btn-ghost" href={ytLink} target="_blank" rel="noreferrer">
