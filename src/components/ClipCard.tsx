@@ -123,6 +123,11 @@ export function ClipCard({ maqamId, clip: raw, hideMeta, autoPlay, index }: Prop
           <>
             <div className="clip-title">{clip.song}</div>
             <div className="clip-artist">{clip.artist}</div>
+            {clip.unconfirmed && (
+              <div className="clip-unconfirmed" title="لا يدخل هذا المقطع في الاختبار حتى نتأكد من مقامه">
+                تصنيف المقام غير مؤكد: مصدر واحد أو المصادر مختلفة
+              </div>
+            )}
           </>
         )}
         <p className="clip-hint">{hideMeta ? 'استمع جيداً للحن… ما المقام برأيك؟' : clip.hint}</p>

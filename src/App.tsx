@@ -5,13 +5,17 @@ import { HomePage } from './pages/HomePage'
 import { MaqamPage } from './pages/MaqamPage'
 import { AjnasPage } from './pages/AjnasPage'
 import { QuizPage } from './pages/QuizPage'
+import { CirclePage } from './pages/CirclePage'
 import { Disc } from './components/Disc'
 import { ThemeToggle } from './components/ThemeToggle'
+import { LevelToggle } from './components/LevelToggle'
+import { useSettings } from './store'
 
 export function App() {
   const route = useRoute()
   const { editMode, overrides } = useClipState()
   const [copied, setCopied] = useState(false)
+  const beginner = useSettings().level === 'beginner'
 
   const copyOverrides = async () => {
     const json = exportOverrides()
@@ -43,13 +47,21 @@ export function App() {
             <a className={navClass('maqam')} href={href.maqam(route.page === 'maqam' ? route.id : 'rast')}>
               المقامات
             </a>
-            <a className={navClass('ajnas')} href={href.ajnas}>
-              الأجناس
-            </a>
+            {!beginner && (
+              <>
+                <a className={navClass('ajnas')} href={href.ajnas}>
+                  الأجناس
+                </a>
+                <a className={navClass('circle')} href={href.circle}>
+                  الدائرة
+                </a>
+              </>
+            )}
             <a className={navClass('quiz')} href={href.quiz()}>
               اختبر أذنك
             </a>
           </nav>
+          <LevelToggle />
           <ThemeToggle />
         </div>
       </header>
@@ -58,6 +70,7 @@ export function App() {
         {route.page === 'home' && <HomePage />}
         {route.page === 'maqam' && <MaqamPage id={route.id} shift={route.shift} />}
         {route.page === 'ajnas' && <AjnasPage />}
+        {route.page === 'circle' && <CirclePage />}
         {route.page === 'quiz' && <QuizPage key={route.focus ?? ''} focus={route.focus} />}
       </main>
 

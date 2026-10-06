@@ -4,6 +4,7 @@ export type Route =
   | { page: 'home' }
   | { page: 'maqam'; id: string; shift?: number }
   | { page: 'ajnas' }
+  | { page: 'circle' }
   | { page: 'quiz'; focus?: string }
 
 function parse(hash: string): Route {
@@ -13,6 +14,7 @@ function parse(hash: string): Route {
     return { page: 'maqam', id: parts[1], shift: Number.isInteger(shift) && shift >= -5 && shift <= 6 ? shift : undefined }
   }
   if (parts[0] === 'ajnas') return { page: 'ajnas' }
+  if (parts[0] === 'circle') return { page: 'circle' }
   if (parts[0] === 'quiz') return { page: 'quiz', focus: parts[1] }
   return { page: 'home' }
 }
@@ -39,5 +41,6 @@ export const href = {
   home: '#/',
   maqam: (id: string, shift?: number) => (shift ? `#/maqam/${id}/${shift}` : `#/maqam/${id}`),
   ajnas: '#/ajnas',
+  circle: '#/circle',
   quiz: (focus?: string) => (focus ? `#/quiz/${focus}` : '#/quiz'),
 }

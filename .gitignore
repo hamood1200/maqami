@@ -4,7 +4,7 @@ dist
 *.tsbuildinfo
 .claude
 tools/analyzer/.venv
-tools/analyzer/cache
+tools/analyzer/cache*
 tools/analyzer/songs
 *.mp3
 src/assets/clips/*

@@ -256,6 +256,37 @@ kbd {
   gap: 6px;
   margin-inline-start: auto;
 }
+.level-toggle {
+  flex: none;
+  display: flex;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--sheet);
+  box-shadow: var(--shade-sm);
+  overflow: hidden;
+  font-family: var(--ui);
+}
+.level-toggle button {
+  border: 0;
+  background: none;
+  padding: 7px 13px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.level-toggle button + button {
+  border-inline-start: 1.5px solid var(--ink);
+}
+.level-toggle button.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+.level-toggle button:focus-visible {
+  outline: 3px solid var(--ochre);
+  outline-offset: -3px;
+}
 .theme-toggle {
   flex: none;
   display: grid;
@@ -952,6 +983,61 @@ input[type='range'] {
   font-size: 0.88rem;
 }
 
+.level-note {
+  font-family: var(--ui);
+  font-size: 0.92rem;
+  background: var(--ochre-soft);
+  border: 1.5px solid var(--ink);
+  padding: 8px 14px;
+  margin: 0 0 20px;
+}
+.level-note .link-btn {
+  font-weight: 600;
+  text-decoration: underline;
+}
+.lessons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 0 44px;
+}
+.lesson {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hair);
+}
+.lesson .index-num {
+  flex: none;
+}
+.lesson .mini-play {
+  width: 34px;
+  height: 34px;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+.lesson-body {
+  flex: 1;
+  min-width: 0;
+}
+.lesson-name {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  line-height: 1.2;
+  text-decoration: none;
+}
+.lesson-name:hover {
+  color: var(--red);
+}
+.lesson-body p {
+  margin: 2px 0 0;
+  color: var(--ink-2);
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
 .margin-note {
   display: grid;
   grid-template-columns: 130px 1fr;
@@ -1951,6 +2037,13 @@ input[type='range'] {
   font-size: 0.84rem;
   margin-bottom: 8px;
 }
+.clip-unconfirmed {
+  font-family: var(--ui);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--ochre-ink);
+  margin: -4px 0 8px;
+}
 .clip-hint {
   font-size: 0.96rem;
   line-height: 1.75;
@@ -2144,6 +2237,30 @@ input[type='range'] {
   text-align: center;
   padding: 26px 0;
   font-size: 1.1rem;
+}
+.quiz-result {
+  text-align: center;
+  padding: 18px 0 8px;
+}
+.quiz-result h2 {
+  font-size: clamp(2.4rem, 6vw, 3.2rem);
+  margin: 10px 0 4px;
+}
+.quiz-result.pass h2 {
+  color: var(--ok);
+}
+.quiz-result.fail h2 {
+  color: var(--bad);
+}
+.quiz-result-score {
+  font-family: var(--ui);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+.quiz-result-score span {
+  font-weight: 400;
+  opacity: 0.75;
 }
 .quiz-q-head {
   text-align: center;
@@ -2782,10 +2899,16 @@ input[type='range'] {
     width: 100%;
     justify-content: space-between;
   }
+  .level-toggle {
+    margin-inline-start: auto;
+  }
+  .level-toggle button {
+    padding: 5px 10px;
+    font-size: 0.86rem;
+  }
   .theme-toggle {
     width: 36px;
     height: 36px;
-    margin-inline-start: auto;
   }
   .nav-link {
     padding: 4px 6px;
@@ -3016,4 +3139,367 @@ input[type='range'] {
 }
 .clip-vol-n.is-boost {
   color: var(--red);
+}
+
+/* ============ دائرة المقامات ============ */
+.circ-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 22px;
+  margin-bottom: 14px;
+}
+.circ-field {
+  display: grid;
+  gap: 2px;
+  font-family: var(--ui);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.circ-select {
+  font: 600 1rem var(--ui);
+  color: var(--ink);
+  background: var(--sheet);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  padding: 5px 10px;
+  box-shadow: var(--shade-sm);
+  min-width: 11rem;
+}
+.circ-pairs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ui);
+  font-size: 0.9rem;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--hair);
+}
+.circ-pairs .pill {
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.circ-pairs .pill.is-on {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.circ-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin-top: 10px;
+}
+.circ-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+  aspect-ratio: 1;
+  font-family: var(--ui);
+}
+.circ-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.circ-ring {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.circ-tick {
+  stroke: var(--ink);
+}
+.tick-nat {
+  stroke-width: 2;
+}
+.tick-semi {
+  stroke-width: 1.3;
+}
+.tick-quarter {
+  stroke-width: 1;
+  opacity: 0.45;
+}
+.circ-fill {
+  fill: var(--ink);
+  fill-opacity: 0.06;
+  stroke: none;
+}
+.circ-edge {
+  stroke: var(--ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.circ-edge.edge-j0 {
+  stroke: var(--j0);
+}
+.circ-edge.edge-j1 {
+  stroke: var(--j1);
+}
+.circ-edge.edge-j2 {
+  stroke: var(--j2);
+}
+.circ-b-path {
+  fill: none;
+  stroke: var(--ochre);
+  stroke-width: 2.5;
+  stroke-dasharray: 7 5;
+}
+.circ-b-node {
+  fill: none;
+  stroke: var(--ochre);
+  stroke-width: 2.5;
+  stroke-dasharray: 4 3;
+}
+.circ-b-node.is-diff {
+  fill: var(--ochre);
+  stroke: var(--ink);
+  stroke-dasharray: none;
+  stroke-width: 1.5;
+}
+.circ-b-node.lit {
+  stroke: var(--red);
+  stroke-width: 4;
+}
+.circ-node {
+  cursor: pointer;
+}
+.circ-node circle {
+  fill: var(--sheet);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  transition:
+    fill 0.15s,
+    r 0.15s;
+}
+.circ-node text {
+  font: 700 15px var(--ui);
+  fill: var(--ink);
+  pointer-events: none;
+}
+.circ-node.is-tonic circle {
+  fill: var(--ink);
+  stroke-width: 2;
+  outline: none;
+}
+.circ-node.is-tonic text {
+  fill: var(--on-ink);
+}
+.circ-node.is-ghammaz circle {
+  fill: var(--ochre-soft);
+  stroke: var(--ochre-ink);
+}
+.circ-node.is-diff circle {
+  stroke: var(--red);
+  stroke-width: 4;
+}
+.circ-node:hover circle,
+.circ-node.lit circle {
+  fill: var(--red);
+  stroke: var(--ink);
+}
+.circ-node:hover text,
+.circ-node.lit text {
+  fill: #fff6ea;
+}
+.circ-ring-label,
+.circ-note-label,
+.circ-interval {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.circ-ring-label {
+  font-size: 0.82rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+.circ-ring-label.is-b {
+  color: var(--ochre-ink);
+  font-weight: 700;
+}
+.circ-note-label {
+  font: 700 0.98rem var(--ui);
+  color: var(--ink);
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+.circ-note-label.is-diff {
+  color: var(--red);
+}
+.circ-interval {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 5px;
+  background: var(--sheet);
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  pointer-events: none;
+}
+.circ-interval.edge-j0 {
+  border-color: var(--j0);
+  color: var(--j0);
+}
+.circ-interval.edge-j1 {
+  border-color: var(--j1);
+  color: var(--j1);
+}
+.circ-interval.edge-j2 {
+  border-color: var(--j2);
+  color: var(--ochre-ink);
+}
+.circ-side {
+  display: grid;
+  gap: 16px;
+}
+.circ-card {
+  border: 2px solid var(--ink);
+  padding: 12px 14px;
+  background: var(--paper);
+}
+.circ-card.is-b {
+  border-style: dashed;
+  border-color: var(--ochre-ink);
+}
+.circ-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.circ-card-head h3 {
+  margin: 0;
+  flex: 1;
+  font-size: 1.25rem;
+}
+.circ-b-key {
+  width: 26px;
+  height: 0;
+  border-top: 3px dashed var(--ochre);
+}
+.circ-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+  font-family: var(--ui);
+  font-weight: 700;
+}
+.circ-steps span {
+  min-width: 2.1em;
+  text-align: center;
+  border: 1.5px solid var(--hair);
+  padding: 0 4px;
+}
+.circ-ajnas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-family: var(--ui);
+  font-size: 0.85rem;
+}
+.circ-jins-tag {
+  padding: 0 8px;
+  color: #fff6ea;
+  background: var(--ink);
+}
+.circ-jins-tag.edge-j0 {
+  background: var(--j0);
+}
+.circ-jins-tag.edge-j1 {
+  background: var(--j1);
+}
+.circ-jins-tag.edge-j2 {
+  background: var(--j2);
+  color: var(--ink);
+}
+.circ-note {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+}
+.circ-diff {
+  border-inline-start: 4px solid var(--red);
+  padding-inline-start: 12px;
+}
+.circ-diff h4 {
+  margin: 0;
+  font-family: var(--ui);
+  color: var(--red);
+}
+.circ-diff p,
+.circ-diff ul {
+  margin: 4px 0 0;
+}
+.circ-diff ul {
+  padding-inline-start: 18px;
+}
+.circ-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-family: var(--ui);
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+.circ-legend .lg {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  vertical-align: -2px;
+  margin-inline-end: 4px;
+}
+.lg-tonic {
+  background: var(--ink);
+}
+.lg-ghammaz {
+  background: var(--ochre-soft);
+  border-color: var(--ochre-ink) !important;
+}
+.lg-b {
+  border-style: dashed !important;
+  border-color: var(--ochre) !important;
+}
+.lg-diff {
+  border-color: var(--red) !important;
+  border-width: 3px !important;
+}
+@media (max-width: 900px) {
+  .circ-stage {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .circ-wrap {
+    width: calc(100% - 40px);
+  }
+  .circ-note-label {
+    font-size: 0.8rem;
+  }
+  .circ-ring-label,
+  .circ-interval {
+    font-size: 0.68rem;
+  }
+  .circ-node text {
+    font-size: 13px;
+  }
+  .circ-select {
+    min-width: 0;
+    width: 100%;
+  }
+  .circ-field {
+    flex: 1 1 100%;
+  }
 }

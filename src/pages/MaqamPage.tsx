@@ -15,17 +15,24 @@ import { usePlayback } from '../usePlayback'
 import { arNum } from '../format'
 import { useSettings } from '../store'
 import { href } from '../router'
+import { BEGINNER_MAQAMAT, BEGINNER_TEXT, isBeginnerMaqam, nextBeginner } from '../data/beginner'
+import { setSettings } from '../store'
 
 const CLIPS_SHOWN = 6
+const CLIPS_SHOWN_BEGINNER = 3
 
 export function MaqamPage({ id, shift: startShift = 0 }: { id: string; shift?: number }) {
   const m = MAQAM_BY_ID[id] ?? MAQAMAT[0]
   const settings = useSettings()
+  // نسخة المبتدئ تخص المقامات الثمانية؛ المقام المتقدّم يُعرض كاملاً حتى في وضع المبتدئ
+  const simple = settings.level === 'beginner' && isBeginnerMaqam(m.id)
+  const clipsShown = simple ? CLIPS_SHOWN_BEGINNER : CLIPS_SHOWN
+  const next = simple ? nextBeginner(m.id) : null
   const { playing, litDegree, lit, play, stop } = usePlayback()
   const [phrase, setPhrase] = useState(0)
   const [drone, setDrone] = useState(false)
   const [showAll, setShowAll] = useState(false)
-  const [shift, setShift] = useState(startShift)
+  const [shift, setShift] = useState(simple ? 0 : startShift)
   const t = useMemo(() => transposeMaqam(m, shift), [m, shift])
   const tonics = useMemo(() => tonicOptions(m), [m])
 
@@ -34,8 +41,8 @@ export function MaqamPage({ id, shift: startShift = 0 }: { id: string; shift?: n
     engine.stopDrone()
     setDrone(false)
     setShowAll(false)
-    setShift(startShift)
-  }, [m.id, startShift, stop])
+    setShift(simple ? 0 : startShift)
+  }, [m.id, startShift, simple, stop])
 
   useEffect(() => () => engine.stopDrone(), [])
 
@@ -82,112 +89,145 @@ export function MaqamPage({ id, shift: startShift = 0 }: { id: string; shift?: n
   return (
     <div className="maqam-layout">
       <aside className="maqam-nav" aria-label="قائمة المقامات">
-        {FAMILIES.map((f) => (
-          <div key={f.id} className="nav-family">
-            <div className="nav-family-name">{f.name}</div>
-            {MAQAMAT.filter((x) => x.family === f.id).map((x) => (
+        {settings.level === 'beginner' ? (
+          <div className="nav-family">
+            <div className="nav-family-name">الدروس</div>
+            {BEGINNER_MAQAMAT.map((x, i) => (
               <a key={x.id} href={href.maqam(x.id)} className={`nav-item ${x.id === m.id ? 'active' : ''}`}>
-                {x.name}
-                {x.basic && <span className="dot" title="مقام أساسي" />}
+                {arNum(i + 1)}. {x.name}
               </a>
             ))}
           </div>
-        ))}
+        ) : (
+          FAMILIES.map((f) => (
+            <div key={f.id} className="nav-family">
+              <div className="nav-family-name">{f.name}</div>
+              {MAQAMAT.filter((x) => x.family === f.id).map((x) => (
+                <a key={x.id} href={href.maqam(x.id)} className={`nav-item ${x.id === m.id ? 'active' : ''}`}>
+                  {x.name}
+                  {x.basic && <span className="dot" title="مقام أساسي" />}
+                </a>
+              ))}
+            </div>
+          ))
+        )}
       </aside>
 
       <div className="maqam-main">
         <label className="maqam-select field">
           <span>اختر المقام</span>
           <select value={m.id} onChange={(e) => (location.hash = href.maqam(e.target.value))}>
-            {FAMILIES.map((f) => (
-              <optgroup key={f.id} label={f.name}>
-                {MAQAMAT.filter((x) => x.family === f.id).map((x) => (
+            {simple
+              ? BEGINNER_MAQAMAT.map((x, i) => (
                   <option key={x.id} value={x.id}>
-                    {x.name}
+                    {arNum(i + 1)}. {x.name}
                   </option>
+                ))
+              : FAMILIES.map((f) => (
+                  <optgroup key={f.id} label={f.name}>
+                    {MAQAMAT.filter((x) => x.family === f.id).map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {x.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
-              </optgroup>
-            ))}
           </select>
         </label>
 
+        {settings.level === 'beginner' && !simple && (
+          <p className="level-note">
+            هذا مقام متقدّم، لذلك تظهر صفحته كاملة.{' '}
+            <button type="button" className="link-btn" onClick={() => setSettings({ level: 'advanced' })}>
+              انتقل إلى النسخة المتقدّمة
+            </button>
+          </p>
+        )}
         <header className="maqam-head">
-          <div className="stamp">{familyName(m.family)}</div>
+          <div className="stamp">{simple ? `الدرس ${arNum(BEGINNER_MAQAMAT.indexOf(m) + 1)}` : familyName(m.family)}</div>
           <h1>
             <small>مقام</small>
             {m.name}
           </h1>
-          <p className="lead">{m.description}</p>
-          <dl className="facts">
-            <div>
-              <dt>القرار</dt>
-              <dd>
-                <NoteName note={t.notes[0]} />
-              </dd>
-            </div>
-            <div>
-              <dt>الغمّاز</dt>
-              <dd>
-                <NoteName note={t.notes[m.ghammaz]} />
-              </dd>
-            </div>
-            <div>
-              <dt>الأجناس</dt>
-              <dd>{m.ajnas.map((j) => j.label ?? AJNAS_BY_ID[j.jins].name).join(' + ')}</dd>
-            </div>
-            <div>
-              <dt>المقاطع</dt>
-              <dd>{arNum(m.examples.length)}</dd>
-            </div>
-          </dl>
+          <p className="lead">{simple ? BEGINNER_TEXT[m.id] : m.description}</p>
+          {!simple && (
+            <dl className="facts">
+              <div>
+                <dt>القرار</dt>
+                <dd>
+                  <NoteName note={t.notes[0]} />
+                </dd>
+              </div>
+              <div>
+                <dt>الغمّاز</dt>
+                <dd>
+                  <NoteName note={t.notes[m.ghammaz]} />
+                </dd>
+              </div>
+              <div>
+                <dt>الأجناس</dt>
+                <dd>{m.ajnas.map((j) => j.label ?? AJNAS_BY_ID[j.jins].name).join(' + ')}</dd>
+              </div>
+              <div>
+                <dt>المقاطع</dt>
+                <dd>{arNum(m.examples.length)}</dd>
+              </div>
+            </dl>
+          )}
         </header>
 
         <section className="panel organ-panel">
           <div className="panel-label">الآلة</div>
-          <div className="tonic-picker">
-            <div className="tonic-head">
-              <span className="small-title">القرار على</span>
-              {shift !== 0 && (
-                <button type="button" className="tonic-reset" onClick={() => changeTonic(0)}>
-                  رجوع إلى الأصل (<NoteName note={m.notes[0]} />)
-                </button>
-              )}
+          {!simple && (
+            <div className="tonic-picker">
+              <div className="tonic-head">
+                <span className="small-title">القرار على</span>
+                {shift !== 0 && (
+                  <button type="button" className="tonic-reset" onClick={() => changeTonic(0)}>
+                    رجوع إلى الأصل (<NoteName note={m.notes[0]} />)
+                  </button>
+                )}
+              </div>
+              <div className="tonic-row" role="radiogroup" aria-label="اختر القرار">
+                {tonics.map((o) => (
+                  <button
+                    key={o.shift}
+                    type="button"
+                    role="radio"
+                    aria-checked={o.shift === shift}
+                    className={`tonic-chip ${o.shift === shift ? 'on' : ''} ${o.shift === 0 ? 'is-home' : ''}`}
+                    onClick={() => changeTonic(o.shift)}
+                    title={o.shift === 0 ? 'القرار الأصلي' : undefined}
+                  >
+                    <NoteName note={o.tonic} />
+                  </button>
+                ))}
+              </div>
+              <p className="tonic-note muted">
+                {shift === 0 ? (
+                  <>
+                    هذا هو القرار المعتاد. اختر نغمة أخرى لتعزف {m.name} منها: المسافات نفسها، والمفاتيح تتغيّر.
+                  </>
+                ) : (
+                  <>
+                    {m.name} على <NoteName note={t.notes[0]} />: نفس المسافات، لكن انتبه للمفاتيح الملوّنة ومفاتيح الربع الجديدة.
+                  </>
+                )}
+              </p>
             </div>
-            <div className="tonic-row" role="radiogroup" aria-label="اختر القرار">
-              {tonics.map((o) => (
-                <button
-                  key={o.shift}
-                  type="button"
-                  role="radio"
-                  aria-checked={o.shift === shift}
-                  className={`tonic-chip ${o.shift === shift ? 'on' : ''} ${o.shift === 0 ? 'is-home' : ''}`}
-                  onClick={() => changeTonic(o.shift)}
-                  title={o.shift === 0 ? 'القرار الأصلي' : undefined}
-                >
-                  <NoteName note={o.tonic} />
-                </button>
-              ))}
-            </div>
-            <p className="tonic-note muted">
-              {shift === 0 ? (
-                <>
-                  هذا هو القرار المعتاد. اختر نغمة أخرى لتعزف {m.name} منها: المسافات نفسها، والمفاتيح تتغيّر.
-                </>
-              ) : (
-                <>
-                  {m.name} على <NoteName note={t.notes[0]} />: نفس المسافات، لكن انتبه للمفاتيح الملوّنة ومفاتيح الربع الجديدة.
-                </>
-              )}
-            </p>
-          </div>
+          )}
           <div className="controls">
             <div className="btn-group">
-              <PlayBtn active={playing === 'up'} onClick={() => run('up')}>
-                صعوداً
-              </PlayBtn>
-              <PlayBtn active={playing === 'down'} onClick={() => run('down')}>
-                هبوطاً
-              </PlayBtn>
+              {!simple && (
+                <>
+                  <PlayBtn active={playing === 'up'} onClick={() => run('up')}>
+                    صعوداً
+                  </PlayBtn>
+                  <PlayBtn active={playing === 'down'} onClick={() => run('down')}>
+                    هبوطاً
+                  </PlayBtn>
+                </>
+              )}
               <PlayBtn active={playing === 'updown'} onClick={() => run('updown')}>
                 صعود وهبوط
               </PlayBtn>
@@ -195,20 +235,24 @@ export function MaqamPage({ id, shift: startShift = 0 }: { id: string; shift?: n
                 جملة لحنية
               </PlayBtn>
             </div>
-            <button type="button" className={`btn btn-toggle ${drone ? 'on' : ''}`} onClick={toggleDrone} aria-pressed={drone}>
-              <span className="toggle-dot" /> القرار الممتد
-            </button>
+            {!simple && (
+              <button type="button" className={`btn btn-toggle ${drone ? 'on' : ''}`} onClick={toggleDrone} aria-pressed={drone}>
+                <span className="toggle-dot" /> القرار الممتد
+              </button>
+            )}
           </div>
 
-          <Keyboard notes={t.notes} extraNotes={extra} ghammaz={m.ghammaz} jinsOf={jinsOf} lit={lit} />
+          <Keyboard notes={t.notes} extraNotes={extra} ghammaz={simple ? undefined : m.ghammaz} jinsOf={jinsOf} lit={lit} />
 
           <div className="legend">
             <span>
               <i className="sw sw-tonic" /> القرار
             </span>
-            <span>
-              <i className="sw sw-ghammaz" /> الغمّاز
-            </span>
+            {!simple && (
+              <span>
+                <i className="sw sw-ghammaz" /> الغمّاز
+              </span>
+            )}
             <span>
               <i className="sw sw-quarter">¼↓</i> مفتاح مخفوض ربع تون
             </span>
@@ -217,15 +261,15 @@ export function MaqamPage({ id, shift: startShift = 0 }: { id: string; shift?: n
                 <i className="sw sw-extra" /> نغمة الهبوط
               </span>
             )}
-            <span className="legend-hint">اضغط المفاتيح بالفأرة أو اللمس، أو بأزرار الكيبورد A S D F…</span>
+            {!simple && <span className="legend-hint">اضغط المفاتيح بالفأرة أو اللمس، أو بأزرار الكيبورد A S D F…</span>}
           </div>
 
           <ScaleStrip
             notes={t.notes}
-            ajnas={m.ajnas}
-            ghammaz={m.ghammaz}
+            ajnas={simple ? [] : m.ajnas}
+            ghammaz={simple ? undefined : m.ghammaz}
             litDegree={litDegree}
-            showTraditional={settings.showTraditional}
+            showTraditional={settings.showTraditional && !simple}
             onNote={(i) => engine.playNote(noteCents(t.notes[i]), 0.7)}
             onJins={playJins}
           />
@@ -233,14 +277,14 @@ export function MaqamPage({ id, shift: startShift = 0 }: { id: string; shift?: n
           {t.descending && (
             <div className="descending">
               <div className="small-title">في الهبوط</div>
-              <ScaleStrip notes={[...t.descending].reverse()} ghammaz={m.ghammaz} showTraditional={settings.showTraditional} onNote={(i) => engine.playNote(noteCents([...t.descending!].reverse()[i]), 0.7)} />
+              <ScaleStrip notes={[...t.descending].reverse()} ghammaz={simple ? undefined : m.ghammaz} showTraditional={settings.showTraditional && !simple} onNote={(i) => engine.playNote(noteCents([...t.descending!].reverse()[i]), 0.7)} />
             </div>
           )}
 
-          <SoundSettings />
+          {!simple && <SoundSettings />}
         </section>
 
-        {m.tips && m.tips.length > 0 && (
+        {!simple && m.tips && m.tips.length > 0 && (
           <section className="tips">
             <h2>
               <Star /> انتبه إلى
@@ -256,37 +300,49 @@ export function MaqamPage({ id, shift: startShift = 0 }: { id: string; shift?: n
         <section className="examples">
           <header className="section-head">
             <h2>اسمعه في الأغاني</h2>
-            {m.examples.length > 0 && <p className="muted">{arNum(m.examples.length)} مقطعاً. كل مقطع يبدأ عند الجزء الذي يظهر فيه المقام بوضوح.</p>}
+            {m.examples.length > 0 && !simple && <p className="muted">{arNum(m.examples.length)} مقطعاً. كل مقطع يبدأ عند الجزء الذي يظهر فيه المقام بوضوح.</p>}
           </header>
           {m.examples.length === 0 ? (
             <p className="muted">لا توجد مقاطع لهذا المقام بعد. جرّب المقامات الأخرى في نفس العائلة.</p>
           ) : (
             <>
               <div className="clip-grid">
-                {(showAll ? m.examples : m.examples.slice(0, CLIPS_SHOWN)).map((c, i) => (
+                {(showAll ? m.examples : m.examples.slice(0, clipsShown)).map((c, i) => (
                   <ClipCard key={c.videoId} maqamId={m.id} clip={c} index={i + 1} />
                 ))}
               </div>
-              {m.examples.length > CLIPS_SHOWN && (
+              {m.examples.length > clipsShown && (
                 <button type="button" className="btn more-btn" onClick={() => setShowAll(!showAll)}>
-                  {showAll ? 'عرض أقل' : `عرض المزيد (${m.examples.length - CLIPS_SHOWN})`}
+                  {showAll ? 'عرض أقل' : `عرض المزيد (${m.examples.length - clipsShown})`}
                 </button>
               )}
             </>
           )}
         </section>
 
-        <section className="next-steps">
-          <div>
-            <h2>جاهز تختبر أذنك؟</h2>
-            <p className="muted">سنعزف لك مقامات عشوائية وتحاول معرفتها.</p>
-          </div>
-          <a className="btn btn-primary" href={href.quiz()}>
-            ابدأ الاختبار
-          </a>
-        </section>
+        {next ? (
+          <section className="next-steps">
+            <div>
+              <h2>الدرس التالي: {next.name}</h2>
+              <p className="muted">{BEGINNER_TEXT[next.id]}</p>
+            </div>
+            <a className="btn btn-primary" href={href.maqam(next.id)}>
+              التالي ←
+            </a>
+          </section>
+        ) : (
+          <section className="next-steps">
+            <div>
+              <h2>{simple ? 'أنهيت الدروس الثمانية!' : 'جاهز تختبر أذنك؟'}</h2>
+              <p className="muted">{simple ? 'اختبر أذنك عليها، ثم جرّب النسخة المتقدّمة.' : 'سنعزف لك مقامات عشوائية وتحاول معرفتها.'}</p>
+            </div>
+            <a className="btn btn-primary" href={href.quiz()}>
+              ابدأ الاختبار
+            </a>
+          </section>
+        )}
 
-        {related.length > 0 && (
+        {!simple && related.length > 0 && (
           <section className="related">
             <h2>من نفس العائلة</h2>
             <div className="chips-row">

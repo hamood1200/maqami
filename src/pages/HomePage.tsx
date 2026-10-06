@@ -6,8 +6,13 @@ import { href } from '../router'
 import { NoteName } from '../components/NoteName'
 import { Disc, Star } from '../components/Disc'
 import { arNum } from '../format'
+import { BEGINNER_MAQAMAT, BEGINNER_TEXT } from '../data/beginner'
 
 export function HomePage() {
+  return useSettings().level === 'beginner' ? <BeginnerHome /> : <FullHome />
+}
+
+function FullHome() {
   const { playing, play, stop } = usePlayback()
   const { bpm } = useSettings()
   const basicCount = MAQAMAT.filter((m) => m.basic).length
@@ -143,6 +148,109 @@ export function HomePage() {
             في الموسيقى العربية نغمات تقع بين مفاتيح البيانو العادية، مثل <b>مي نصف بيمول</b> (السيكاه). على الأورغ الشرقي يُعزف ربع التون بالضغط على
             المفتاح نفسه بعد خفضه ربع تون، ولهذا ترى على اللوحة علامة <b>¼↓</b> فوق هذه المفاتيح. كل مقام هنا يضبط اللوحة تلقائياً كما يفعل العازف على
             أورغه.
+          </p>
+        </div>
+      </aside>
+    </div>
+  )
+}
+
+/** نسخة المبتدئ: نفس الشكل، ثمانية مقامات بترتيب الدروس، وكلام أقل */
+function BeginnerHome() {
+  const { playing, play, stop } = usePlayback()
+  const { bpm } = useSettings()
+  const heroPlaying = playing === 'rast-hero'
+  const toggle = (id: string) => {
+    if (playing === id) return stop()
+    play(id, maqamEvents(MAQAM_BY_ID[id], 'phrase', bpm))
+  }
+
+  return (
+    <div className="home">
+      <section className="hero">
+        <div className="hero-text">
+          <div className="kicker">
+            <Star /> للمبتدئين
+          </div>
+          <h1>
+            ثمانية مقامات
+            <br />
+            <em>تكفيك للبداية.</em>
+          </h1>
+          <p className="lead">اسمع المقام، جرّبه على الأورغ، ثم اسمعه في أغنية تعرفها.</p>
+          <div className="hero-cta">
+            <a className="btn btn-primary btn-lg" href={href.maqam('rast')}>
+              ابدأ الدرس الأول
+            </a>
+            <a className="btn btn-lg" href={href.quiz()}>
+              اختبر أذنك
+            </a>
+          </div>
+        </div>
+
+        <div className="hero-disc">
+          <button
+            type="button"
+            className="disc-btn"
+            onClick={() => (heroPlaying ? stop() : play('rast-hero', maqamEvents(MAQAM_BY_ID.rast, 'phrase', bpm)))}
+            aria-label={heroPlaying ? 'إيقاف' : 'استمع إلى جملة من مقام الراست'}
+          >
+            <Disc label="راست" sub="على دو" spinning={heroPlaying} />
+            <span className="disc-cue">{heroPlaying ? '■ إيقاف' : '▶︎ ضع الإبرة'}</span>
+          </button>
+        </div>
+      </section>
+
+      <div className="ticker" aria-hidden="true">
+        <div className="ticker-track">
+          {[0, 1].map((k) => (
+            <span key={k}>
+              {[...BEGINNER_MAQAMAT, ...BEGINNER_MAQAMAT].map((m, i) => (
+                <span key={i} className="ticker-item">
+                  {m.name} <Star />
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <section className="index">
+        <header className="section-head">
+          <h2>الدروس</h2>
+          <p className="muted">بالترتيب، من الأسهل للأذن.</p>
+        </header>
+        <ol className="lessons">
+          {BEGINNER_MAQAMAT.map((m, i) => (
+            <li key={m.id} className="lesson">
+              <span className="index-num">{arNum(i + 1)}</span>
+              <div className="lesson-body">
+                <a className="lesson-name" href={href.maqam(m.id)}>
+                  {m.name}
+                </a>
+                <p>{BEGINNER_TEXT[m.id]}</p>
+              </div>
+              <button
+                type="button"
+                className={`mini-play ${playing === m.id ? 'playing' : ''}`}
+                aria-label={`استمع إلى ${m.name}`}
+                onClick={() => toggle(m.id)}
+              >
+                {playing === m.id ? '■' : '▶︎'}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <aside className="margin-note">
+        <div className="margin-glyph" aria-hidden="true">
+          ¼
+        </div>
+        <div>
+          <h2>ما هو ربع التون؟</h2>
+          <p>
+            نغمة تقع <b>بين مفتاحين</b> على البيانو. هي سرّ الطعم الشرقي في الراست والبياتي والسيكاه، وعلى اللوحة نعلّمها بـ<b>¼↓</b>.
           </p>
         </div>
       </aside>

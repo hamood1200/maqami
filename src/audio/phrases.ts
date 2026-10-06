@@ -67,3 +67,11 @@ export function notesEvents(notes: string[], bpm: number, opts: { updown?: boole
     tag: i,
   }))
 }
+
+/** نغمة من لحن أغنية: [الطبقة بالسنت من C4، بدايتها من أول الجملة، مدتها] بالثواني */
+export type SongNote = [cents: number, t: number, dur: number]
+
+/** جملة مستخرجة من لحن أغنية (src/data/clipPhrases.json): نفس نغمات المطرب وطبقته وإيقاعه، ملقوطة على نغمات المقام */
+export function songPhraseEvents(notes: SongNote[]): SeqEvent[] {
+  return notes.map(([cents, t, dur], i) => ({ cents, t, dur: i === notes.length - 1 ? Math.max(dur, 0.6) : Math.max(dur, 0.15) }))
+}

@@ -7,10 +7,14 @@ export interface Settings {
   bpm: number
   volume: number
   showTraditional: boolean
+  /** نسخة المبتدئ: المقامات الثمانية وكلام أقل */
+  level: Level
 }
 
+export type Level = 'beginner' | 'advanced'
+
 const KEY = 'maqami.settings'
-const defaults: Settings = { timbre: 'oriental', bpm: 108, volume: 0.8, showTraditional: true }
+const defaults: Settings = { timbre: 'oriental', bpm: 108, volume: 0.8, showTraditional: true, level: 'advanced' }
 
 function load(): Settings {
   try {

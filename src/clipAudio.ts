@@ -40,6 +40,11 @@ export function claimAudio(a: HTMLAudioElement) {
   current = a
 }
 
+/** يوقف المقطع المسموع (مثلاً قبل عزف جملة على الأورغ) */
+export function pauseClip() {
+  current?.pause()
+}
+
 // السرعة وعلوّ الصوت: إعداد واحد لكل المقاطع ويُحفظ في المتصفح
 export interface ClipSettings {
   /** 1 أو 0.75 أو 0.5، والطبقة تبقى كما هي */
