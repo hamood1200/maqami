@@ -1,24 +1,30 @@
-// ملفات صوت المقاطع المستضافة في الموقع نفسه بدل يوتيوب.
-// الملف يُسمّى بمعرّف الفيديو: src/assets/clips/<videoId>.mp3 (أو m4a)،
-// ويحتوي الأغنية كاملة؛ البداية والنهاية تبقيان من بيانات المقطع.
+// ملفات صوت المقاطع بدل يوتيوب:
+// - على جهاز التطوير: الأغنية كاملة من src/assets/clips/<videoId>.m4a (أو mp3)، غير مرفوعة على git.
+// - على الموقع: نسخة مقصوصة (المقطع مع دقيقة قبله وبعده) في جذر Bunny CDN، تصنعها tools/bunny-clips.mjs
+//   وتكتب بداية كل ملف في data/clipFiles.json. التوقيتات في الموقع تبقى بتوقيت الأغنية الكاملة.
 // المقطع الذي ليس له ملف يُشغَّل من يوتيوب كما كان.
 // شكل الموجة محسوب مسبقاً بـ tools/clip-peaks.mjs.
 
 import { useSyncExternalStore } from 'react'
 import PEAKS from './data/clipPeaks.json'
+import FILES from './data/clipFiles.json'
 import { engine } from './audio/engine'
 import { readJSON, writeJSON } from './store'
 
-const files = import.meta.glob('./assets/clips/*.{mp3,m4a,aac,ogg,opus}', {
-  query: '?url',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>
+const CDN = 'https://maqami.b-cdn.net/'
 
-const byId = new Map(Object.entries(files).map(([path, url]) => [path.split('/').pop()!.replace(/\.[^.]+$/, ''), url]))
+export interface ClipSource {
+  url: string
+  /** موضع بداية الملف في الأغنية الكاملة (ثوانٍ) */
+  offset: number
+}
 
-export function clipAudioUrl(videoId: string): string | undefined {
-  return byId.get(videoId)
+export function clipSource(videoId: string): ClipSource | undefined {
+  const f = (FILES as Record<string, { ext: string; offset: number }>)[videoId]
+  if (!f) return undefined
+  // على جهاز التطوير نقرأ الأغنية الكاملة مباشرة (بدون إدخالها في البناء)
+  if (import.meta.env.DEV) return { url: `/src/assets/clips/${videoId}.${f.ext}`, offset: 0 }
+  return { url: `${CDN}${videoId}.${f.ext}`, offset: f.offset }
 }
 
 /** ارتفاعات أعمدة الموجة (12–100) لمقطع الموقع، إن وُجدت */
@@ -62,7 +68,7 @@ export function setClipSettings(p: Partial<ClipSettings>) {
 }
 
 // عنصر الصوت لا يعلو فوق 100%، ولا يتغيّر علوّه أصلاً على الآيفون، فنمرّره عبر Web Audio
-// أول مرة يُغيَّر فيها الصوت فقط (الربط لا رجعة فيه). يتطلب أن يكون الملف من نفس الموقع.
+// أول مرة يُغيَّر فيها الصوت فقط (الربط لا رجعة فيه). الملف من موقع آخر يحتاج CORS و crossOrigin وإلا يصير صامتاً.
 const gains = new WeakMap<HTMLAudioElement, GainNode>()
 
 export function applyClipSettings(a: HTMLAudioElement) {

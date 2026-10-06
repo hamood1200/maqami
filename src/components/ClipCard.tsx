@@ -4,7 +4,7 @@ import { loadYouTube, fmtTime, type YTPlayer } from '../youtube'
 import { clearOverride, effectiveClip, hasOverride, saveOverride, useClipState } from '../clips'
 import { engine } from '../audio/engine'
 import { arNum } from '../format'
-import { clipAudioUrl, clipPeaks } from '../clipAudio'
+import { clipPeaks, clipSource } from '../clipAudio'
 import { AudioClip, ClipTempo, type ClipControl } from './AudioClip'
 
 interface Props {
@@ -24,8 +24,9 @@ export function ClipCard({ maqamId, clip: raw, hideMeta, autoPlay, index }: Prop
   const [error, setError] = useState<string | null>(null)
   const host = useRef<HTMLDivElement>(null)
   const player = useRef<YTPlayer | null>(null)
-  // ملف صوت مستضاف في الموقع؟ (أسرع من يوتيوب)
-  const audioUrl = clipAudioUrl(clip.videoId)
+  // ملف صوت مستضاف للموقع؟ (أسرع من يوتيوب)
+  const audio = clipSource(clip.videoId)
+  const audioUrl = audio?.url
   const audioCtl = useRef<ClipControl | null>(null)
   const [draft, setDraft] = useState({ start: clip.start, end: clip.end })
 
@@ -85,9 +86,10 @@ export function ClipCard({ maqamId, clip: raw, hideMeta, autoPlay, index }: Prop
   return (
     <div className="clip">
       <div className="clip-media">
-        {audioUrl ? (
+        {audio ? (
           <AudioClip
-            src={audioUrl}
+            src={audio.url}
+            offset={audio.offset}
             thumb={hideMeta ? undefined : `https://i.ytimg.com/vi/${clip.videoId}/hqdefault.jpg`}
             peaks={clipPeaks(clip.videoId)}
             start={clip.start}

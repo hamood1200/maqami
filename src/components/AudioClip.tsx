@@ -12,6 +12,8 @@ export interface ClipControl {
 
 interface Props {
   src: string
+  /** موضع بداية الملف في الأغنية الكاملة؛ كل التوقيتات هنا بتوقيت الأغنية */
+  offset?: number
   /** صورة الفيديو، أو لا شيء في الاختبار */
   thumb?: string
   /** شكل الموجة المحسوب مسبقاً */
@@ -26,7 +28,7 @@ interface Props {
 }
 
 /** مشغّل صوت المقطع بشكل أسطوانة تخرج من غلافها وتدور، وتحتها موجة المقطع تمتلئ من اليمين */
-export function AudioClip({ src, thumb, peaks, start, end, index, autoPlay, ctl, onStart, onError }: Props) {
+export function AudioClip({ src, offset = 0, thumb, peaks, start, end, index, autoPlay, ctl, onStart, onError }: Props) {
   const audio = useRef<HTMLAudioElement>(null)
   const range = useRef({ start, end })
   const [t, setT] = useState(start)
@@ -34,13 +36,18 @@ export function AudioClip({ src, thumb, peaks, start, end, index, autoPlay, ctl,
   const [waiting, setWaiting] = useState(false)
   const [started, setStarted] = useState(false)
   const settings = useClipSettings()
+  // موضع التشغيل بتوقيت الأغنية الكاملة
+  const pos = (a: HTMLAudioElement) => a.currentTime + offset
+  const go = (a: HTMLAudioElement, s: number) => {
+    a.currentTime = Math.max(0, s - offset)
+    setT(s)
+  }
 
   const playFrom = (s: number, e: number) => {
     const a = audio.current
     if (!a) return
     range.current = { start: s, end: e }
-    a.currentTime = s
-    setT(s)
+    go(a, s)
     resume()
   }
 
@@ -60,13 +67,13 @@ export function AudioClip({ src, thumb, peaks, start, end, index, autoPlay, ctl,
     if (!a) return
     if (!a.paused) return a.pause()
     const { start: s, end: e } = range.current
-    if (!started || a.currentTime >= e - 0.25 || a.currentTime < s) playFrom(s, e)
+    if (!started || pos(a) >= e - 0.25 || pos(a) < s) playFrom(s, e)
     else resume()
   }
 
   useImperativeHandle(ctl, () => ({
     replay: playFrom,
-    now: () => audio.current?.currentTime ?? 0,
+    now: () => (audio.current ? pos(audio.current) : 0),
   }))
 
   // تغيير السرعة أو الصوت أثناء التشغيل
@@ -92,12 +99,12 @@ export function AudioClip({ src, thumb, peaks, start, end, index, autoPlay, ctl,
     const tick = () => {
       const a = audio.current
       if (!a) return
-      if (a.currentTime >= range.current.end) {
+      if (pos(a) >= range.current.end) {
         a.pause()
         setT(range.current.end)
         return
       }
-      setT(a.currentTime)
+      setT(pos(a))
       id = requestAnimationFrame(tick)
     }
     id = requestAnimationFrame(tick)
@@ -114,8 +121,7 @@ export function AudioClip({ src, thumb, peaks, start, end, index, autoPlay, ctl,
     if (!a) return
     const r = e.currentTarget.getBoundingClientRect()
     const f = Math.min(1, Math.max(0, (r.right - e.clientX) / r.width))
-    a.currentTime = start + f * len
-    setT(a.currentTime)
+    go(a, start + f * len)
     if (!started) resume()
   }
 
@@ -123,13 +129,15 @@ export function AudioClip({ src, thumb, peaks, start, end, index, autoPlay, ctl,
     <div className={`vp ${started ? 'is-started' : ''} ${playing ? 'is-playing' : ''}`}>
       <audio
         ref={audio}
-        src={`${src}#t=${start}`}
+        src={`${src}#t=${Math.max(0, start - offset)}`}
+        // ملفات Bunny من موقع آخر: بدون هذا يصير الصوت صامتاً حين نقوّيه عبر Web Audio
+        crossOrigin="anonymous"
         preload="none"
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         // احتياط حين لا يعمل requestAnimationFrame (تبويب في الخلفية)
         onTimeUpdate={(e) => {
-          if (e.currentTarget.currentTime >= range.current.end) e.currentTarget.pause()
+          if (pos(e.currentTarget) >= range.current.end) e.currentTarget.pause()
         }}
         onWaiting={() => setWaiting(true)}
         onPlaying={() => setWaiting(false)}
@@ -179,8 +187,7 @@ export function AudioClip({ src, thumb, peaks, start, end, index, autoPlay, ctl,
           const d = e.key === 'ArrowLeft' ? 5 : e.key === 'ArrowRight' ? -5 : 0
           if (!d) return
           e.preventDefault()
-          a.currentTime = Math.min(end, Math.max(start, a.currentTime + d))
-          setT(a.currentTime)
+          go(a, Math.min(end, Math.max(start, pos(a) + d)))
         }}
       >
         {bars.map((h, i) => (
