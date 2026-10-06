@@ -18,6 +18,8 @@ import { fmtTime } from '../youtube'
 
 /** جمل مستخرجة آلياً من لحن الأغاني (tools/clip-phrases.mjs): ١٦ نغمة من المقطع نفسه */
 const PHRASES = CLIP_PHRASES as unknown as Record<string, { at: number; end: number; notes: SongNote[] }>
+/** شرح الخطأ بجملة من الأغنية: على جهاز التطوير فقط حتى نكمله */
+const SONG_PHRASES = import.meta.env.DEV
 
 type Mode = 'maqam' | 'jins' | 'clip'
 type Level = 'basic' | 'all'
@@ -393,8 +395,8 @@ export function QuizPage({ focus }: { focus?: string }) {
               <div className={`feedback ${isCorrect ? 'ok' : 'bad'}`} role="status">
                 <div className="feedback-text">
                   <b>{isCorrect ? 'إجابة صحيحة!' : `الإجابة الصحيحة: ${q.answer.name}`}</b>
-                  {!isCorrect && mode !== 'clip' && <span>قارن بين الاثنين بأذنك:</span>}
-                  {!isCorrect && mode === 'clip' && (
+                  {!isCorrect && (mode !== 'clip' || !SONG_PHRASES) && <span>قارن بين الاثنين بأذنك:</span>}
+                  {!isCorrect && mode === 'clip' && SONG_PHRASES && (
                     <span>
                       {songPhrase
                         ? `هاي ${arNum(songPhrase.notes.length)} نغمة من الغناء بالدقيقة ${fmtTime(Math.floor(songPhrase.at))}: اسمعها من الأغنية، وبعدين نفسها على الأورغ بنفس الطبقة. كل نغماتها من ${q.answer.name}.`
@@ -403,12 +405,12 @@ export function QuizPage({ focus }: { focus?: string }) {
                   )}
                 </div>
                 <div className="feedback-actions">
-                  {!isCorrect && mode === 'clip' && songPhrase && (
+                  {!isCorrect && mode === 'clip' && SONG_PHRASES && songPhrase && (
                     <button type="button" className={`btn btn-small btn-play ${hearing ? 'playing' : ''}`} onClick={hearOriginal}>
                       {hearing ? '■' : '▶︎'} من الأغنية
                     </button>
                   )}
-                  {!isCorrect && mode === 'clip' && (
+                  {!isCorrect && mode === 'clip' && SONG_PHRASES && (
                     <button type="button" className={`btn btn-small btn-play ${playing === 'explain' ? 'playing' : ''}`} onClick={explain}>
                       {playing === 'explain' ? '■' : '▶︎'} {songPhrase ? 'نفسها على الأورغ' : `جملة من ${q.answer.name}`}
                     </button>
