@@ -4,6 +4,8 @@ import { loadYouTube, fmtTime, type YTPlayer } from '../youtube'
 import { clearOverride, effectiveClip, hasOverride, saveOverride, useClipState } from '../clips'
 import { engine } from '../audio/engine'
 import { arNum } from '../format'
+import { clipAudioUrl, clipPeaks } from '../clipAudio'
+import { AudioClip, ClipTempo, type ClipControl } from './AudioClip'
 
 interface Props {
   maqamId: string
@@ -22,12 +24,15 @@ export function ClipCard({ maqamId, clip: raw, hideMeta, autoPlay, index }: Prop
   const [error, setError] = useState<string | null>(null)
   const host = useRef<HTMLDivElement>(null)
   const player = useRef<YTPlayer | null>(null)
+  // ملف صوت مستضاف في الموقع؟ (أسرع من يوتيوب)
+  const audioUrl = clipAudioUrl(clip.videoId)
+  const audioCtl = useRef<ClipControl | null>(null)
   const [draft, setDraft] = useState({ start: clip.start, end: clip.end })
 
   useEffect(() => setDraft({ start: clip.start, end: clip.end }), [clip.start, clip.end])
 
   useEffect(() => {
-    if (!active || !host.current) return
+    if (!active || audioUrl || !host.current) return
     let cancelled = false
     const el = document.createElement('div')
     host.current.appendChild(el)
@@ -69,17 +74,31 @@ export function ClipCard({ maqamId, clip: raw, hideMeta, autoPlay, index }: Prop
   }, [active, clip.videoId])
 
   const replay = (start = clip.start, end = clip.end) => {
+    if (audioUrl) return audioCtl.current?.replay(start, end)
     if (!active) return setActive(true)
     player.current?.loadVideoById({ videoId: clip.videoId, startSeconds: start, endSeconds: end })
   }
 
-  const now = () => Math.round(player.current?.getCurrentTime() ?? 0)
+  const now = () => Math.round((audioUrl ? audioCtl.current?.now() : player.current?.getCurrentTime()) ?? 0)
   const ytLink = `https://www.youtube.com/watch?v=${clip.videoId}&t=${clip.start}s`
 
   return (
     <div className="clip">
       <div className="clip-media">
-        {active ? (
+        {audioUrl ? (
+          <AudioClip
+            src={audioUrl}
+            thumb={hideMeta ? undefined : `https://i.ytimg.com/vi/${clip.videoId}/hqdefault.jpg`}
+            peaks={clipPeaks(clip.videoId)}
+            start={clip.start}
+            end={clip.end}
+            index={index}
+            autoPlay={autoPlay}
+            ctl={audioCtl}
+            onStart={() => setActive(true)}
+            onError={setError}
+          />
+        ) : active ? (
           <div className="clip-player" ref={host} />
         ) : (
           <button type="button" className="clip-thumb" onClick={() => setActive(true)} aria-label="تشغيل المقطع">
@@ -105,6 +124,7 @@ export function ClipCard({ maqamId, clip: raw, hideMeta, autoPlay, index }: Prop
           </>
         )}
         <p className="clip-hint">{hideMeta ? 'استمع جيداً للحن… ما المقام برأيك؟' : clip.hint}</p>
+        {audioUrl && <ClipTempo />}
         <div className="clip-actions">
           <button type="button" className="btn btn-small" onClick={() => replay()}>
             {active ? '↺ أعد المقطع' : '▶︎ شغّل المقطع'}

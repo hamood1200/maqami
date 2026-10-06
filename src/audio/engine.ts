@@ -385,18 +385,18 @@ class AudioEngine {
   }
 
   /** نغمة القرار الممتدة (الدرون) تساعد الأذن على الإحساس بالمقام */
-  startDrone(cents: number) {
+  startDrone(cents: number, withFifth = true) {
     this.stopDrone()
     const ctx = this.ensure()
     const g = ctx.createGain()
     g.gain.value = 0.45
     g.connect(this.out)
     const low = this.noteOn(cents - 1200, { timbre: 'organ', velocity: 0.55, dest: g })
-    const fifth = this.noteOn(cents - 1200 + 700, { timbre: 'organ', velocity: 0.25, dest: g })
+    const fifth = withFifth ? this.noteOn(cents - 1200 + 700, { timbre: 'organ', velocity: 0.25, dest: g }) : null
     this.droneVoice = {
       stop: () => {
         low.stop()
-        fifth.stop()
+        fifth?.stop()
       },
     }
   }

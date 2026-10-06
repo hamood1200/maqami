@@ -18,14 +18,14 @@ import { href } from '../router'
 
 const CLIPS_SHOWN = 6
 
-export function MaqamPage({ id }: { id: string }) {
+export function MaqamPage({ id, shift: startShift = 0 }: { id: string; shift?: number }) {
   const m = MAQAM_BY_ID[id] ?? MAQAMAT[0]
   const settings = useSettings()
   const { playing, litDegree, lit, play, stop } = usePlayback()
   const [phrase, setPhrase] = useState(0)
   const [drone, setDrone] = useState(false)
   const [showAll, setShowAll] = useState(false)
-  const [shift, setShift] = useState(0)
+  const [shift, setShift] = useState(startShift)
   const t = useMemo(() => transposeMaqam(m, shift), [m, shift])
   const tonics = useMemo(() => tonicOptions(m), [m])
 
@@ -34,8 +34,8 @@ export function MaqamPage({ id }: { id: string }) {
     engine.stopDrone()
     setDrone(false)
     setShowAll(false)
-    setShift(0)
-  }, [m.id, stop])
+    setShift(startShift)
+  }, [m.id, startShift, stop])
 
   useEffect(() => () => engine.stopDrone(), [])
 

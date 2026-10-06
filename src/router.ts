@@ -2,13 +2,16 @@ import { useSyncExternalStore } from 'react'
 
 export type Route =
   | { page: 'home' }
-  | { page: 'maqam'; id: string }
+  | { page: 'maqam'; id: string; shift?: number }
   | { page: 'ajnas' }
   | { page: 'quiz'; focus?: string }
 
 function parse(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean)
-  if (parts[0] === 'maqam' && parts[1]) return { page: 'maqam', id: parts[1] }
+  if (parts[0] === 'maqam' && parts[1]) {
+    const shift = Number(parts[2])
+    return { page: 'maqam', id: parts[1], shift: Number.isInteger(shift) && shift >= -5 && shift <= 6 ? shift : undefined }
+  }
   if (parts[0] === 'ajnas') return { page: 'ajnas' }
   if (parts[0] === 'quiz') return { page: 'quiz', focus: parts[1] }
   return { page: 'home' }
@@ -34,7 +37,7 @@ export function useRoute(): Route {
 
 export const href = {
   home: '#/',
-  maqam: (id: string) => `#/maqam/${id}`,
+  maqam: (id: string, shift?: number) => (shift ? `#/maqam/${id}/${shift}` : `#/maqam/${id}`),
   ajnas: '#/ajnas',
   quiz: (focus?: string) => (focus ? `#/quiz/${focus}` : '#/quiz'),
 }

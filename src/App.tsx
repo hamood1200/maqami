@@ -56,7 +56,7 @@ export function App() {
 
       <main className="container main">
         {route.page === 'home' && <HomePage />}
-        {route.page === 'maqam' && <MaqamPage id={route.id} />}
+        {route.page === 'maqam' && <MaqamPage id={route.id} shift={route.shift} />}
         {route.page === 'ajnas' && <AjnasPage />}
         {route.page === 'quiz' && <QuizPage key={route.focus ?? ''} focus={route.focus} />}
       </main>

@@ -3,3 +3,9 @@ dist
 .DS_Store
 *.tsbuildinfo
 .claude
+tools/analyzer/.venv
+tools/analyzer/cache
+tools/analyzer/songs
+*.mp3
+src/assets/clips/*
+!src/assets/clips/.gitkeep
