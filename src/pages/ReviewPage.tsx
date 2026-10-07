@@ -12,7 +12,7 @@ import { REVIEW_SHEET_URL as SHEET } from '../data/reviewSheet'
 // الحكم على المقطع المسموع نفسه، لا على الأغنية كلها (قد تتحوّل الأغنية لمقام آخر).
 // كل اختيار يُحفظ فوراً في جدول Google Sheets (data/reviewSheet.ts) ويُقرأ منه عند فتح الصفحة،
 // فيكمل الأستاذ من أي جهاز. ما لم يصل الجدول بعد (بدون إنترنت) يبقى في المتصفح ويُرسل لاحقاً.
-// بدون جدول: الحفظ في المتصفح فقط، ويرسل النتائج نصاً نحفظه في data/review.json.
+// بدون جدول: الحفظ في متصفح الأستاذ فقط.
 // كل حكم ينعكس فوراً على الموقع (review.ts): المقطع ينتقل لمقامه الصحيح في صفحته وفي الاختبار.
 
 type Sync = 'loading' | 'saving' | 'saved' | 'offline'
@@ -44,8 +44,7 @@ type Filter = 'all' | 'left' | 'fix'
 export function ReviewPage() {
   const [answers, setAnswers] = useState<Record<string, Answer>>(() => readJSON(KEY, reviewAnswers()))
   const [filter, setFilter] = useState<Filter>('all')
-  const [sent, setSent] = useState<string | null>(null)
-  const [sync, setSync] = useState<Sync>('loading')
+  const [sync, setSync] = useState<Sync>(SHEET ? 'loading' : 'saved')
   const pending = useRef<Record<string, Answer | null>>(readJSON(PENDING, {}))
   const timer = useRef(0)
   const flushing = useRef(false)
@@ -121,32 +120,12 @@ export function ReviewPage() {
   const shown = ITEMS.filter((i) => (filter === 'left' ? !answers[i.key] : filter === 'fix' ? answers[i.key] && answers[i.key].v !== 'ok' : true))
   const groups = MAQAMAT.map((m) => ({ m, items: shown.filter((i) => i.maqamId === m.id) })).filter((g) => g.items.length)
 
-  const send = async () => {
-    const text = reportText(answers)
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'مراجعة مقامات مقامي', text })
-        setSent('تم فتح المشاركة.')
-        return
-      }
-    } catch (e) {
-      // ألغى المشاركة
-      if ((e as Error).name === 'AbortError') return
-    }
-    try {
-      await navigator.clipboard.writeText(text)
-      setSent('نُسخت النتائج. الصقها في رسالة.')
-    } catch {
-      setSent(text)
-    }
-  }
-
   return (
     <div className="review-page">
       <header className="page-head">
         <h1>مراجعة المقامات</h1>
         <p className="lead">
-          اسمع المقطع، وقل هل المقام المكتوب صحيح <b>لهذا المقطع</b>. اختياراتك تُحفظ تلقائياً{SHEET ? '، وتستطيع تعديلها متى شئت.' : '، وحين تنتهي اضغط «أرسل النتائج».'}
+          اسمع المقطع، وقل هل المقام المكتوب صحيح <b>لهذا المقطع</b>. كل اختيار يُحفظ ويتعدّل في الموقع مباشرة، وتستطيع تغييره متى شئت.
         </p>
       </header>
 
@@ -191,32 +170,11 @@ export function ReviewPage() {
             <span style={{ width: `${(done / ITEMS.length) * 100}%` }} />
           </span>
         </div>
-        {SHEET ? (
-          <span className={`review-sync is-${sync}`} role="status">
-            {sync === 'loading' ? 'يحمّل…' : sync === 'saving' ? 'يحفظ…' : sync === 'saved' ? '✓ محفوظ' : 'بلا اتصال، يُحفظ لاحقاً'}
-          </span>
-        ) : (
-          <button type="button" className="btn btn-primary" onClick={send} disabled={!done}>
-            أرسل النتائج
-          </button>
-        )}
+        <span className={`review-sync is-${sync}`} role="status">
+          {sync === 'loading' ? 'يحمّل…' : sync === 'saving' ? 'يحفظ…' : sync === 'saved' ? '✓ محفوظ' : 'بلا اتصال، يُحفظ لاحقاً'}
+        </span>
       </div>
 
-      {sent && (
-        <div className="review-sent" role="status">
-          {sent.length > 80 ? (
-            <>
-              <p>انسخ النص وأرسله:</p>
-              <textarea readOnly value={sent} rows={8} onFocus={(e) => e.currentTarget.select()} />
-            </>
-          ) : (
-            <p>{sent}</p>
-          )}
-          <button type="button" className="btn btn-ghost btn-small" onClick={() => setSent(null)}>
-            إغلاق
-          </button>
-        </div>
-      )}
     </div>
   )
 }
@@ -245,6 +203,12 @@ function ReviewItem({ item, answer, onChange }: { item: Item; answer?: Answer; o
         <b>{MAQAM_BY_ID[maqamId].name}</b>
         {clip.unconfirmed && <span className="review-flag">مصادره غير متفقة</span>}
       </div>
+
+      {v === 'fix' && answer?.to && (
+        <p className="review-changed" role="status">
+          ✓ تم تعديلها: من {MAQAM_BY_ID[maqamId].name} إلى {maqamName(answer.to)}
+        </p>
+      )}
 
       <div className="review-verdict" role="group" aria-label="الحكم">
         <button type="button" className={v === 'ok' ? 'on' : ''} aria-pressed={v === 'ok'} onClick={() => pick('ok')}>
@@ -400,27 +364,4 @@ function MiniPlayer({ clip }: { clip: Clip }) {
       <span className="review-time">{error ? 'تعذّر التحميل' : `${fmtTime(t - clip.start)} / ${fmtTime(len)}`}</span>
     </div>
   )
-}
-
-/** نص النتائج: مقروء للإنسان، وفي آخره سطر رموز نطبّقه على البيانات */
-function reportText(answers: Record<string, Answer>): string {
-  const done = ITEMS.filter((i) => answers[i.key])
-  const fix = done.filter((i) => answers[i.key].v === 'fix')
-  const unsure = done.filter((i) => answers[i.key].v === 'unsure')
-  const ok = done.filter((i) => answers[i.key].v === 'ok')
-  const line = (i: Item, n: number) => {
-    const a = answers[i.key]
-    const to = a.v === 'fix' ? ` ← ${a.to ? maqamName(a.to) : '؟'}` : ''
-    const note = a.note ? ` (${a.note})` : ''
-    return `${arNum(n)}. ${i.clip.song} — ${i.clip.artist}: ${MAQAM_BY_ID[i.maqamId].name}${to}${note}`
-  }
-  const out = ['مراجعة مقامات «مقامي»', `راجعت ${arNum(done.length)} من ${arNum(ITEMS.length)} مقطعاً.`, '']
-  if (fix.length) out.push(`المقام خطأ (${arNum(fix.length)}):`, ...fix.map((i, n) => line(i, n + 1)), '')
-  if (unsure.length) out.push(`لست متأكداً (${arNum(unsure.length)}):`, ...unsure.map((i, n) => line(i, n + 1)), '')
-  const okNotes = ok.filter((i) => answers[i.key].note)
-  out.push(`صحيح: ${arNum(ok.length)} مقطعاً.`)
-  if (okNotes.length) out.push('ملاحظات على الصحيح:', ...okNotes.map((i, n) => line(i, n + 1)))
-  // كل الاختيارات كما هي، لنحفظها في data/review.json
-  out.push('', 'رمز للموقع (لا تحذفه):', `#${JSON.stringify(Object.fromEntries(done.map((i) => [i.key, answers[i.key]])))}`)
-  return out.join('\n')
 }

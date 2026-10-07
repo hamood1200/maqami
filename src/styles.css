@@ -3728,34 +3728,6 @@ input[type='range'] {
   height: 100%;
   background: var(--ok);
 }
-.review-sent {
-  position: fixed;
-  inset-inline: 16px;
-  bottom: calc(80px + env(safe-area-inset-bottom));
-  z-index: 21;
-  display: grid;
-  gap: 8px;
-  max-width: 560px;
-  margin-inline: auto;
-  padding: 14px;
-  border: 2px solid var(--ink);
-  background: var(--sheet);
-  box-shadow: var(--shade-sm);
-  font-family: var(--ui);
-}
-.review-sent p {
-  margin: 0;
-}
-.review-sent textarea {
-  width: 100%;
-  font: 14px var(--ui);
-  background: var(--paper);
-  color: var(--ink);
-  border: 1px solid var(--hair);
-}
-.review-sent .btn {
-  justify-self: start;
-}
 .review-sync {
   flex: none;
   font: 700 0.85rem var(--ui);
@@ -3766,4 +3738,13 @@ input[type='range'] {
 }
 .review-sync.is-offline {
   color: var(--ochre-ink);
+}
+
+.review-changed {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--ok-soft);
+  color: var(--ink);
+  font-weight: 700;
 }
