@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FAMILIES, MAQAMAT, MAQAM_BY_ID, type Clip } from '../data/maqamat'
+import { ORIGINAL, PENDING_KEY as PENDING, TEACHER_KEY as KEY, fetchReview, reviewAnswers, setReviewAnswers, type Answer, type ReviewItem as Item, type Verdict } from '../review'
 import { applyClipSettings, claimAudio, clipSource } from '../clipAudio'
 import { engine } from '../audio/engine'
 import { readJSON, writeJSON } from '../store'
 import { fmtTime } from '../youtube'
 import { arNum } from '../format'
-import SAVED from '../data/review.json'
 import { REVIEW_SHEET_URL as SHEET } from '../data/reviewSheet'
 
 // صفحة مخفية (بالرابط فقط: #/review) يراجع فيها أستاذ موسيقى مقام كل مقطع في الموقع.
@@ -13,18 +13,7 @@ import { REVIEW_SHEET_URL as SHEET } from '../data/reviewSheet'
 // كل اختيار يُحفظ فوراً في جدول Google Sheets (data/reviewSheet.ts) ويُقرأ منه عند فتح الصفحة،
 // فيكمل الأستاذ من أي جهاز. ما لم يصل الجدول بعد (بدون إنترنت) يبقى في المتصفح ويُرسل لاحقاً.
 // بدون جدول: الحفظ في المتصفح فقط، ويرسل النتائج نصاً نحفظه في data/review.json.
-
-type Verdict = 'ok' | 'fix' | 'unsure'
-interface Answer {
-  v: Verdict
-  /** المقام الصحيح حين يكون المكتوب خطأ */
-  to?: string
-  note?: string
-}
-
-const KEY = 'maqami.review'
-/** أحكام لم تصل الجدول بعد (null = حذف) */
-const PENDING = 'maqami.review.pending'
+// كل حكم ينعكس فوراً على الموقع (review.ts): المقطع ينتقل لمقامه الصحيح في صفحته وفي الاختبار.
 
 type Sync = 'loading' | 'saving' | 'saved' | 'offline'
 
@@ -47,18 +36,13 @@ async function push(key: string, a: Answer | null) {
   if (!r.ok) throw new Error(String(r.status))
 }
 
-interface Item {
-  key: string
-  maqamId: string
-  clip: Clip
-}
-
-const ITEMS: Item[] = MAQAMAT.flatMap((m) => m.examples.map((clip) => ({ key: `${m.id}:${clip.videoId}`, maqamId: m.id, clip })))
+// كما كُتبت في البيانات قبل أحكام الأستاذ
+const ITEMS = ORIGINAL
 
 type Filter = 'all' | 'left' | 'fix'
 
 export function ReviewPage() {
-  const [answers, setAnswers] = useState<Record<string, Answer>>(() => readJSON(KEY, SAVED as Record<string, Answer>))
+  const [answers, setAnswers] = useState<Record<string, Answer>>(() => readJSON(KEY, reviewAnswers()))
   const [filter, setFilter] = useState<Filter>('all')
   const [sent, setSent] = useState<string | null>(null)
   const [sync, setSync] = useState<Sync>('loading')
@@ -66,7 +50,10 @@ export function ReviewPage() {
   const timer = useRef(0)
   const flushing = useRef(false)
 
-  useEffect(() => writeJSON(KEY, answers), [answers])
+  useEffect(() => {
+    writeJSON(KEY, answers)
+    setReviewAnswers(answers)
+  }, [answers])
 
   // يرسل ما لم يصل الجدول، واحداً واحداً
   const flush = async () => {
@@ -95,15 +82,9 @@ export function ReviewPage() {
   useEffect(() => {
     if (!SHEET) return
     let alive = true
-    fetch(SHEET)
-      .then((r) => r.json() as Promise<Record<string, Answer>>)
-      .then((server) => {
-        if (!alive) return
-        const next = { ...server }
-        for (const [k, a] of Object.entries(pending.current)) {
-          if (a) next[k] = a
-          else delete next[k]
-        }
+    fetchReview()
+      .then((next) => {
+        if (!alive || !next) return
         setAnswers(next)
         setSync('saved')
         flush()

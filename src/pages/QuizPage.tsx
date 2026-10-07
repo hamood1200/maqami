@@ -5,6 +5,7 @@ import { noteCents } from '../data/notes'
 import { engine, type SeqEvent } from '../audio/engine'
 import { maqamEvents, notesEvents, phraseCount, songPhraseEvents, type SongNote } from '../audio/phrases'
 import { allClips } from '../clips'
+import { useReviewVersion } from '../review'
 import { claimAudio, clipSource, pauseClip } from '../clipAudio'
 import CLIP_PHRASES from '../data/clipPhrases.json'
 import { ClipCard } from '../components/ClipCard'
@@ -103,7 +104,9 @@ export function QuizPage({ focus }: { focus?: string }) {
   const maqamPool = useMemo(() => MAQAMAT.filter((m) => level === 'all' || m.basic), [level])
   const jinsPool = useMemo(() => AJNAS.filter((j) => level === 'all' || j.basic), [level])
   // الأغاني غير المؤكدة المقام لا تدخل الاختبار حتى لا نصحّح إجابة صحيحة كأنها خطأ
-  const clipPool = useMemo(() => allClips((m) => level === 'all' || m.basic).filter((c) => !c.clip.unconfirmed), [level])
+  const reviewed = useReviewVersion()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const clipPool = useMemo(() => allClips((m) => level === 'all' || m.basic).filter((c) => !c.clip.unconfirmed), [level, reviewed])
 
   // في وضع الأغاني نعرض فقط المقامات التي لها مقاطع
   const clipMaqamPool = useMemo(() => {

@@ -11,12 +11,15 @@ import { Disc } from './components/Disc'
 import { ThemeToggle } from './components/ThemeToggle'
 import { LevelToggle } from './components/LevelToggle'
 import { useSettings } from './store'
+import { useReviewVersion } from './review'
 
 export function App() {
   const route = useRoute()
   const { editMode, overrides } = useClipState()
   const [copied, setCopied] = useState(false)
   const beginner = useSettings().level === 'beginner'
+  // أحكام المراجعة تغيّر مقاطع المقامات، فيُعاد رسم الصفحات
+  useReviewVersion()
 
   const copyOverrides = async () => {
     const json = exportOverrides()
