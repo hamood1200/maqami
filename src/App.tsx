@@ -6,6 +6,7 @@ import { MaqamPage } from './pages/MaqamPage'
 import { AjnasPage } from './pages/AjnasPage'
 import { QuizPage } from './pages/QuizPage'
 import { CirclePage } from './pages/CirclePage'
+import { ReviewPage } from './pages/ReviewPage'
 import { Disc } from './components/Disc'
 import { ThemeToggle } from './components/ThemeToggle'
 import { LevelToggle } from './components/LevelToggle'
@@ -72,6 +73,7 @@ export function App() {
         {route.page === 'ajnas' && <AjnasPage />}
         {route.page === 'circle' && <CirclePage />}
         {route.page === 'quiz' && <QuizPage key={route.focus ?? ''} focus={route.focus} />}
+        {route.page === 'review' && <ReviewPage />}
       </main>
 
       <footer className="site-footer">

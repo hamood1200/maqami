@@ -6,6 +6,7 @@ export type Route =
   | { page: 'ajnas' }
   | { page: 'circle' }
   | { page: 'quiz'; focus?: string }
+  | { page: 'review' }
 
 function parse(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean)
@@ -15,6 +16,7 @@ function parse(hash: string): Route {
   }
   if (parts[0] === 'ajnas') return { page: 'ajnas' }
   if (parts[0] === 'circle') return { page: 'circle' }
+  if (parts[0] === 'review') return { page: 'review' }
   if (parts[0] === 'quiz') return { page: 'quiz', focus: parts[1] }
   return { page: 'home' }
 }
