@@ -21,7 +21,6 @@ interface Answer {
 }
 
 const KEY = 'maqami.review'
-const NAME_KEY = 'maqami.review.name'
 
 interface Item {
   key: string
@@ -35,12 +34,10 @@ type Filter = 'all' | 'left' | 'fix'
 
 export function ReviewPage() {
   const [answers, setAnswers] = useState<Record<string, Answer>>(() => readJSON(KEY, SAVED as Record<string, Answer>))
-  const [name, setName] = useState(() => readJSON<string>(NAME_KEY, ''))
   const [filter, setFilter] = useState<Filter>('all')
   const [sent, setSent] = useState<string | null>(null)
 
   useEffect(() => writeJSON(KEY, answers), [answers])
-  useEffect(() => writeJSON(NAME_KEY, name), [name])
 
   const set = (key: string, a: Answer | null) =>
     setAnswers((prev) => {
@@ -57,7 +54,7 @@ export function ReviewPage() {
   const groups = MAQAMAT.map((m) => ({ m, items: shown.filter((i) => i.maqamId === m.id) })).filter((g) => g.items.length)
 
   const send = async () => {
-    const text = reportText(answers, name)
+    const text = reportText(answers)
     try {
       if (navigator.share) {
         await navigator.share({ title: 'مراجعة مقامات مقامي', text })
@@ -81,13 +78,8 @@ export function ReviewPage() {
       <header className="page-head">
         <h1>مراجعة المقامات</h1>
         <p className="lead">
-          اسمع كل مقطع وقرّر: هل المقام المكتوب صحيح <b>لهذا المقطع بالذات</b>؟ الأغنية قد تتحوّل لمقام آخر بعده، فالحكم على المسموع فقط. اختياراتك تُحفظ
-          تلقائياً، وتستطيع تعديلها متى شئت. حين تنتهي اضغط «أرسل النتائج».
+          اسمع المقطع، وقل هل المقام المكتوب صحيح <b>لهذا المقطع</b>. اختياراتك تُحفظ تلقائياً، وحين تنتهي اضغط «أرسل النتائج».
         </p>
-        <label className="review-name">
-          <span>اسمك</span>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="اختياري" autoComplete="name" />
-        </label>
       </header>
 
       <div className="seg review-filter" role="group" aria-label="عرض">
@@ -337,7 +329,7 @@ function MiniPlayer({ clip }: { clip: Clip }) {
 }
 
 /** نص النتائج: مقروء للإنسان، وفي آخره سطر رموز نطبّقه على البيانات */
-function reportText(answers: Record<string, Answer>, name: string): string {
+function reportText(answers: Record<string, Answer>): string {
   const name_ = (id: string) => (id === 'other' ? 'غير موجود في القائمة' : (MAQAM_BY_ID[id]?.name ?? id))
   const done = ITEMS.filter((i) => answers[i.key])
   const fix = done.filter((i) => answers[i.key].v === 'fix')
@@ -349,7 +341,7 @@ function reportText(answers: Record<string, Answer>, name: string): string {
     const note = a.note ? ` (${a.note})` : ''
     return `${arNum(n)}. ${i.clip.song} — ${i.clip.artist}: ${MAQAM_BY_ID[i.maqamId].name}${to}${note}`
   }
-  const out = [`مراجعة مقامات «مقامي»${name ? ` — ${name}` : ''}`, `راجعت ${arNum(done.length)} من ${arNum(ITEMS.length)} مقطعاً.`, '']
+  const out = ['مراجعة مقامات «مقامي»', `راجعت ${arNum(done.length)} من ${arNum(ITEMS.length)} مقطعاً.`, '']
   if (fix.length) out.push(`المقام خطأ (${arNum(fix.length)}):`, ...fix.map((i, n) => line(i, n + 1)), '')
   if (unsure.length) out.push(`لست متأكداً (${arNum(unsure.length)}):`, ...unsure.map((i, n) => line(i, n + 1)), '')
   const okNotes = ok.filter((i) => answers[i.key].note)

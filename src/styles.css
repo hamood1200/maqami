@@ -3511,20 +3511,10 @@ input[type='range'] {
 .review-page .page-head {
   margin-bottom: 20px;
 }
-.review-name {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  font-family: var(--ui);
-  font-weight: 600;
-}
-.review-name input,
 .review-field input,
 .review-field select {
   flex: 1;
   min-width: 0;
-  max-width: 420px;
   padding: 8px 10px;
   border: 2px solid var(--ink);
   border-radius: 0;
@@ -3710,10 +3700,6 @@ input[type='range'] {
   display: grid;
   gap: 4px;
   font: 600 0.85rem var(--ui);
-}
-.review-field input,
-.review-field select {
-  max-width: none;
 }
 .review-bar {
   position: fixed;
