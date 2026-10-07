@@ -6,11 +6,13 @@ import { readJSON, writeJSON } from '../store'
 import { fmtTime } from '../youtube'
 import { arNum } from '../format'
 import SAVED from '../data/review.json'
+import { REVIEW_SHEET_URL as SHEET } from '../data/reviewSheet'
 
 // صفحة مخفية (بالرابط فقط: #/review) يراجع فيها أستاذ موسيقى مقام كل مقطع في الموقع.
 // الحكم على المقطع المسموع نفسه، لا على الأغنية كلها (قد تتحوّل الأغنية لمقام آخر).
-// الاختيارات تُحفظ في متصفحه، ثم يرسلها نصاً. نحفظ آخر ما أرسله في data/review.json مرجعاً،
-// فيظهر له من جديد على أي جهاز ويعدّل عليه.
+// كل اختيار يُحفظ فوراً في جدول Google Sheets (data/reviewSheet.ts) ويُقرأ منه عند فتح الصفحة،
+// فيكمل الأستاذ من أي جهاز. ما لم يصل الجدول بعد (بدون إنترنت) يبقى في المتصفح ويُرسل لاحقاً.
+// بدون جدول: الحفظ في المتصفح فقط، ويرسل النتائج نصاً نحفظه في data/review.json.
 
 type Verdict = 'ok' | 'fix' | 'unsure'
 interface Answer {
@@ -21,6 +23,29 @@ interface Answer {
 }
 
 const KEY = 'maqami.review'
+/** أحكام لم تصل الجدول بعد (null = حذف) */
+const PENDING = 'maqami.review.pending'
+
+type Sync = 'loading' | 'saving' | 'saved' | 'offline'
+
+const VERDICT: Record<Verdict, string> = { ok: 'صحيح', fix: 'خطأ', unsure: 'لست متأكداً' }
+const maqamName = (id: string) => (id === 'other' ? 'غير موجود في القائمة' : (MAQAM_BY_ID[id]?.name ?? id))
+
+async function push(key: string, a: Answer | null) {
+  const it = ITEMS.find((i) => i.key === key)
+  const body = {
+    key,
+    ...a,
+    song: it?.clip.song,
+    artist: it?.clip.artist,
+    written: it && MAQAM_BY_ID[it.maqamId].name,
+    verdict: a && VERDICT[a.v],
+    toName: a?.to && maqamName(a.to),
+  }
+  // text/plain بلا ترويسات إضافية حتى لا يحتاج المتصفح طلب CORS مسبقاً
+  const r = await fetch(SHEET, { method: 'POST', body: JSON.stringify(body) })
+  if (!r.ok) throw new Error(String(r.status))
+}
 
 interface Item {
   key: string
@@ -36,16 +61,78 @@ export function ReviewPage() {
   const [answers, setAnswers] = useState<Record<string, Answer>>(() => readJSON(KEY, SAVED as Record<string, Answer>))
   const [filter, setFilter] = useState<Filter>('all')
   const [sent, setSent] = useState<string | null>(null)
+  const [sync, setSync] = useState<Sync>('loading')
+  const pending = useRef<Record<string, Answer | null>>(readJSON(PENDING, {}))
+  const timer = useRef(0)
+  const flushing = useRef(false)
 
   useEffect(() => writeJSON(KEY, answers), [answers])
 
-  const set = (key: string, a: Answer | null) =>
+  // يرسل ما لم يصل الجدول، واحداً واحداً
+  const flush = async () => {
+    if (!SHEET || flushing.current) return
+    flushing.current = true
+    try {
+      for (;;) {
+        const key = Object.keys(pending.current)[0]
+        if (!key) break
+        const a = pending.current[key]
+        setSync('saving')
+        await push(key, a)
+        // تغيّر أثناء الإرسال؟ يبقى ليُرسل من جديد
+        if (pending.current[key] === a) delete pending.current[key]
+        writeJSON(PENDING, pending.current)
+      }
+      setSync('saved')
+    } catch {
+      setSync('offline')
+    } finally {
+      flushing.current = false
+    }
+  }
+
+  // عند الفتح: ما في الجدول هو الأصل، فوقه ما لم يصل بعد من هذا الجهاز
+  useEffect(() => {
+    if (!SHEET) return
+    let alive = true
+    fetch(SHEET)
+      .then((r) => r.json() as Promise<Record<string, Answer>>)
+      .then((server) => {
+        if (!alive) return
+        const next = { ...server }
+        for (const [k, a] of Object.entries(pending.current)) {
+          if (a) next[k] = a
+          else delete next[k]
+        }
+        setAnswers(next)
+        setSync('saved')
+        flush()
+      })
+      .catch(() => alive && setSync('offline'))
+    const online = () => flush()
+    window.addEventListener('online', online)
+    return () => {
+      alive = false
+      window.removeEventListener('online', online)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const set = (key: string, a: Answer | null) => {
     setAnswers((prev) => {
       const next = { ...prev }
       if (a) next[key] = a
       else delete next[key]
       return next
     })
+    if (!SHEET) return
+    pending.current[key] = a
+    writeJSON(PENDING, pending.current)
+    setSync('saving')
+    // الملاحظة تُكتب حرفاً حرفاً، فننتظر قليلاً
+    clearTimeout(timer.current)
+    timer.current = window.setTimeout(flush, 800)
+  }
 
   const done = ITEMS.filter((i) => answers[i.key]).length
   const fixes = ITEMS.filter((i) => answers[i.key]?.v === 'fix').length
@@ -78,7 +165,7 @@ export function ReviewPage() {
       <header className="page-head">
         <h1>مراجعة المقامات</h1>
         <p className="lead">
-          اسمع المقطع، وقل هل المقام المكتوب صحيح <b>لهذا المقطع</b>. اختياراتك تُحفظ تلقائياً، وحين تنتهي اضغط «أرسل النتائج».
+          اسمع المقطع، وقل هل المقام المكتوب صحيح <b>لهذا المقطع</b>. اختياراتك تُحفظ تلقائياً{SHEET ? '، وتستطيع تعديلها متى شئت.' : '، وحين تنتهي اضغط «أرسل النتائج».'}
         </p>
       </header>
 
@@ -123,9 +210,15 @@ export function ReviewPage() {
             <span style={{ width: `${(done / ITEMS.length) * 100}%` }} />
           </span>
         </div>
-        <button type="button" className="btn btn-primary" onClick={send} disabled={!done}>
-          أرسل النتائج
-        </button>
+        {SHEET ? (
+          <span className={`review-sync is-${sync}`} role="status">
+            {sync === 'loading' ? 'يحمّل…' : sync === 'saving' ? 'يحفظ…' : sync === 'saved' ? '✓ محفوظ' : 'بلا اتصال، يُحفظ لاحقاً'}
+          </span>
+        ) : (
+          <button type="button" className="btn btn-primary" onClick={send} disabled={!done}>
+            أرسل النتائج
+          </button>
+        )}
       </div>
 
       {sent && (
@@ -330,14 +423,13 @@ function MiniPlayer({ clip }: { clip: Clip }) {
 
 /** نص النتائج: مقروء للإنسان، وفي آخره سطر رموز نطبّقه على البيانات */
 function reportText(answers: Record<string, Answer>): string {
-  const name_ = (id: string) => (id === 'other' ? 'غير موجود في القائمة' : (MAQAM_BY_ID[id]?.name ?? id))
   const done = ITEMS.filter((i) => answers[i.key])
   const fix = done.filter((i) => answers[i.key].v === 'fix')
   const unsure = done.filter((i) => answers[i.key].v === 'unsure')
   const ok = done.filter((i) => answers[i.key].v === 'ok')
   const line = (i: Item, n: number) => {
     const a = answers[i.key]
-    const to = a.v === 'fix' ? ` ← ${a.to ? name_(a.to) : '؟'}` : ''
+    const to = a.v === 'fix' ? ` ← ${a.to ? maqamName(a.to) : '؟'}` : ''
     const note = a.note ? ` (${a.note})` : ''
     return `${arNum(n)}. ${i.clip.song} — ${i.clip.artist}: ${MAQAM_BY_ID[i.maqamId].name}${to}${note}`
   }

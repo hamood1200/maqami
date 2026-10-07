@@ -3756,3 +3756,14 @@ input[type='range'] {
 .review-sent .btn {
   justify-self: start;
 }
+.review-sync {
+  flex: none;
+  font: 700 0.85rem var(--ui);
+  color: var(--muted);
+}
+.review-sync.is-saved {
+  color: var(--ok);
+}
+.review-sync.is-offline {
+  color: var(--ochre-ink);
+}
